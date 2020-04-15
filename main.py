@@ -26,12 +26,6 @@
 # from torch.utils.data import DataLoader
 # import matplotlib.pyplot as plt
 #
-# from flashtorch.utils import apply_transforms, load_image
-# from flashtorch.utils import (denormalize,
-#                               format_for_plotting,
-#                               standardize_and_clip)
-# from flashtorch.saliency import Backprop
-# from flashtorch.activmax import GradientAscent
 # import torchvision.models as models
 #
 # # %matplotlib inline
@@ -39,13 +33,6 @@
 #
 # import copy
 #
-# """MNIST trainset en testset"""
-#
-# trainset = datasets.MNIST('', download=True, train=True, transform=transforms.ToTensor())
-# testset = datasets.MNIST('', download=True, train=False, transform=transforms.ToTensor())
-#
-# train_loader = DataLoader(trainset, batch_size=64, shuffle=True)
-# test_loader = DataLoader(testset, batch_size=64, shuffle=True)
 #
 # """### Class declaration
 #
@@ -54,345 +41,17 @@
 # Hier definieer ik mijn eigen neuraal netwerken. Deze dienen om te testen om een MLP te kunnen explainen. Het verschil tussen de twee is dat bij de NeuralNetSeq alles in verschillende nn.Sequential modules geplaatst is. Op deze manier kan ik testen of mijn code algemeen genoeg geschreven is.
 # """
 #
-# class NeuralNet(nn.Module):
-#     def __init__(self, input_size, hidden_size, output_size):
-#         super(NeuralNet, self).__init__()
-#
-#         # Inputs to hidden layer linear transformation
-#         self.layer1 = nn.Linear(input_size, hidden_size[0])
-#         # Hidden layer 1 to HL2 linear transformation
-#         self.layer2 = nn.Linear(hidden_size[0], hidden_size[1])
-#         # HL2 to output linear transformation
-#         self.layer3 = nn.Linear(hidden_size[1], output_size)
-#
-#         # Define relu activation and LogSoftmax output
-#         self.relu = nn.ReLU()
-#         self.LogSoftmax = nn.LogSoftmax(dim=1)
-#
-#     def forward(self, x):
-#         # HL1 with relu activation
-#         out = self.relu(self.layer1(x))
-#         # HL2 with relu activation
-#         out = self.relu(self.layer2(out))
-#         # Output layer with LogSoftmax activation
-#         out = self.LogSoftmax(self.layer3(out))
-#         return out
-#
-# class NeuralNetSeq(nn.Module):
-#   def __init__(self):
-#     super(NeuralNetSeq, self).__init__()
-#     #layers
-#     self.fc1 = nn.Sequential(
-#                     nn.Linear(28 * 28, 128),
-#                     nn.ReLU()
-#     )
-#     self.fc2 = nn.Sequential(
-#                     nn.Linear(128, 64),
-#                     nn.ReLU()
-#     )
-#     self.out = nn.Sequential(
-#                     nn.Linear(64, 10),
-#                     nn.LogSoftmax(dim=1)
-#                     )
-#
-#
-#   def forward(self, x):
-#     # dit moet naargelang het aantal layers en type neuraal netwerk anders forwarden.
-#     x = self.fc1(x)
-#     x = self.fc2(x)
-#     x = self.out(x)
-#     return x
-#
-#   def createModel():
-#     model = NeuralNet();
-#     return model;
-#
 # """#### Manager
 #
 # Deze klasse heb ik aangemaakt zodat ik vanuit deze in de toekomst verschillende netwerken kan binnenladen, trainen en explainen.
 # """
 #
-# class NNManager:
-#   def __init__(self, NN, EPOCHS = 3):
-#     #variables
-#     self.model = NN
-#
-#   def get_model(self):
-#     return self.model
-#
-#   def set_model(self, model):
-#     self.model = model
-#
-#   def image_to_tensor(self, input_):
-#     return apply_transforms(input_)
-#
-#   def saliency_map(self, input_, target_class, guided=False, use_gpu=False, figsize=(16, 4), cmap='viridis', alpha=.5, return_output=False, imageReady= False):
-#     temp_model = copy.deepcopy(self.model) # we make a copy so the forward- and backward hooks won't be added to the original model.
-#     backprop = Backprop(temp_model)
-#     if not imageReady:
-#       input_ = apply_transforms(input_)
-#     backprop.visualize(input_, target_class, guided, use_gpu)
-#
-#     """
-#     In this method, I will use the flashtorch code for activation_maximisation, but I will try to merge it into 1 method.
-#     Input variables:
-#         int           img_size      = image size.
-#         float         lr            = learning rate.
-#         bool          use_gpu       = use gpu.
-#         int           conv_layer    = The integer that points to the convolutional layer were activation maximisation will be executed on.
-#         bool          random        = random select a filter of a specific layer.
-#         bool          return_output = return the output if you want to grasp the optimized data.
-#         array/int     filter       = the requested filter(s)
-#     """
-#   def activation_maximisation(self, img_size=224, lr=1., use_gpu=False, filters=None, conv_layer_int=None, random=False, return_output=False):
-#     g_ascent = GradientAscent(self.model.features, img_size= img_size, lr= lr, use_gpu= use_gpu)
-#
-#     if conv_layer_int is not None:
-#       conv_layer = self.model.features[conv_layer_int]
-#       if ((filters is not None) and (not random)):
-#         return_value = g_ascent.visualize(conv_layer, filters, title=('one convolutional layer is shown, filters are chosen: '), return_output=True)
-#       else:
-#         return_value = g_ascent.visualize(conv_layer, title=('one convolutional layer is shown, filters are at random: '), return_output=True)
-#
-#     else:
-#       if ((filters is not None) and (not random)):
-#         for feature in self.model.features:
-#           if isinstance(feature,nn.modules.conv.Conv2d):
-#             return_value = g_ascent.visualize(feature, filters, title=('All convolutional layers are shown, filters are chosen: '), return_output=True)
-#
-#       else:
-#         for feature in self.model.features:
-#           if isinstance(feature,nn.modules.conv.Conv2d):
-#             return_value = g_ascent.visualize(feature, title=('All convolutional layers are shown, filters are at random: '), return_output=True)
-#
-#     if return_output:
-#       return return_value
-#
-#   def deepdream(self, img_path, conv_layer_int, filter_idx, img_size=224, lr=.1, num_iter=20, figsize=(4, 4), title='DeepDream', return_output=False, use_gpu=False):
-#     g_ascent = GradientAscent(self.model.features, img_size= img_size, lr= lr, use_gpu= use_gpu)
-#     layer = self.model.features[conv_layer_int]
-#     return_value = g_ascent.deepdream(img_path, layer, filter_idx, lr=lr, num_iter=num_iter, figsize=figsize, title=title, return_output=True)
-#     if return_output:
-#       return return_value
-#
+
 # """#### MLP Explainer
 #
 # Deze klasse zal door de Manager gebruikt worden om lineare neurale netwerken te verklaren.
 # """
 #
-# class MLPExlainer():
-#     """Provides an interface to perform backpropagation.
-#     This class provids a way to calculate the gradients of a target class
-#     output w.r.t. an input image, by performing a single backprobagation.
-#     The gradients obtained can be used to visualise an image-specific class
-#     saliency map, which can gives some intuition on regions within the input
-#     image that contribute the most (and least) to the corresponding output.
-#     More details on saliency maps: `Deep Inside Convolutional Networks:
-#     Visualising Image Classification Models and Saliency Maps
-#     <https://arxiv.org/pdf/1312.6034.pdf>`_.
-#     Args:
-#         model: A neural network model from `torchvision.models
-#             <https://pytorch.org/docs/stable/torchvision/models.html>`_.
-#     """
-#
-#     ####################
-#     # Public interface #
-#     ####################
-#
-#     def __init__(self, model):
-#         self.model = model
-#         self.model.eval()
-#         self.gradients = None
-#         self._register_lin_hook()
-#
-#     def calculate_gradients(self,
-#                             input_,
-#                             target_class=None,
-#                             take_max=False,
-#                             guided=False,
-#                             use_gpu=False):
-#
-#         """Calculates gradients of the target_class output w.r.t. an input_.
-#         The gradients is calculated for each colour channel. Then, the maximum
-#         gradients across colour channels is returned.
-#         Args:
-#             input_ (torch.Tensor): With shape :math:`(N, C, H, W)`.
-#             target_class (int, optional, default=None)
-#             take_max (bool, optional, default=False): If True, take the maximum
-#                 gradients across colour channels for each pixel.
-#             guided (bool, optional, default=Fakse): If True, perform guided
-#                 backpropagation. See `Striving for Simplicity: The All
-#                 Convolutional Net <https://arxiv.org/pdf/1412.6806.pdf>`_.
-#             use_gpu (bool, optional, default=False): Use GPU if set to True and
-#                 `torch.cuda.is_available()`.
-#         Returns:
-#             gradients (torch.Tensor): With shape :math:`(C, H, W)`.
-#         """
-#
-#         if 'inception' in self.model.__class__.__name__.lower():
-#             if input_.size()[1:] != (3, 299, 299):
-#                 raise ValueError('Image must be 299x299 for Inception models.')
-#
-#         if guided:
-#             self.relu_outputs = []
-#             self._register_relu_hooks()
-#
-#         if torch.cuda.is_available() and use_gpu:
-#             self.model = self.model.to('cuda')
-#             input_ = input_.to('cuda')
-#
-#         self.model.zero_grad()
-#
-#         self.gradients = torch.zeros(input_.shape)
-#
-#         # Get a raw prediction value (logit) from the last linear layer
-#
-#         output = self.model(input_)
-#
-#         # Don't set the gradient target if the model is a binary classifier
-#         # i.e. has one class prediction
-#
-#         if len(output.shape) == 1:
-#             target = None
-#         else:
-#             _, top_class = output.topk(1, dim=1)
-#
-#             # Create a 2D tensor with shape (1, num_classes) and
-#             # set all element to zero
-#
-#             target = torch.FloatTensor(1, output.shape[-1]).zero_()
-#
-#             if torch.cuda.is_available() and use_gpu:
-#                 target = target.to('cuda')
-#
-#             if (target_class is not None) and (top_class != target_class):
-#                 warnings.warn(UserWarning(
-#                     f'The predicted class index {top_class.item()} does not' +
-#                     f'equal the target class index {target_class}. Calculating' +
-#                     'the gradient w.r.t. the predicted class.'
-#                 ))
-#
-#             # Set the element at top class index to be 1
-#
-#             target[0][top_class] = 1
-#
-#         # Calculate gradients of the target class output w.r.t. input_
-#
-#         output.backward(gradient=target)
-#
-#         # Detach the gradients from the graph and move to cpu
-#
-#         gradients = self.gradients.detach().cpu()[0]
-#
-#         if take_max:
-#             # Take the maximum across colour channels
-#
-#             gradients = gradients.max(dim=0, keepdim=True)[0]
-#
-#         return gradients
-#
-#     def visualize(self, input_, target_class, guided=False, use_gpu=False,
-#                   figsize=(16, 4), cmap='viridis', alpha=.5,
-#                   return_output=False):
-#         """Calculates gradients and visualizes the output.
-#         A method that combines the backprop operation and visualization.
-#         It also returns the gradients, if specified with `return_output=True`.
-#         Args:
-#             input_ (torch.Tensor): With shape :math:`(N, C, H, W)`.
-#             target_class (int, optional, default=None)
-#             take_max (bool, optional, default=False): If True, take the maximum
-#                 gradients across colour channels for each pixel.
-#             guided (bool, optional, default=Fakse): If True, perform guided
-#                 backpropagation. See `Striving for Simplicity: The All
-#                 Convolutional Net <https://arxiv.org/pdf/1412.6806.pdf>`_.
-#             use_gpu (bool, optional, default=False): Use GPU if set to True and
-#                 `torch.cuda.is_available()`.
-#             figsize (tuple, optional, default=(16, 4)): The size of the plot.
-#             cmap (str, optional, default='viridis): The color map of the
-#                 gradients plots. See avaialable color maps `here <https://matplotlib.org/3.1.0/tutorials/colors/colormaps.html>`_.
-#             alpha (float, optional, default=.5): The alpha value of the max
-#                 gradients to be jaxaposed on top of the input image.
-#             return_output (bool, optional, default=False): Returns the
-#                 output(s) of optimization if set to True.
-#         Returns:
-#             gradients (torch.Tensor): With shape :math:`(C, H, W)`.
-#         """
-#
-#         # Calculate gradients
-#
-#         gradients = self.calculate_gradients(input_,
-#                                              target_class,
-#                                              guided=guided,
-#                                              use_gpu=use_gpu)
-#         max_gradients = self.calculate_gradients(input_,
-#                                                  target_class,
-#                                                  guided=guided,
-#                                                  take_max=True,
-#                                                  use_gpu=use_gpu)
-#
-#         # Setup subplots
-#         print(gradients.size())
-#         subplots = [
-#             # (title, [(image1, cmap, alpha), (image2, cmap, alpha)])
-#             ('Input image',
-#              [(format_for_plotting(denormalize(input_)), None, None)]),
-#             ('Gradients across RGB channels',
-#              [(format_for_plotting(standardize_and_clip(gradients)),
-#               None,
-#               None)]),
-#             ('Max gradients',
-#              [(format_for_plotting(standardize_and_clip(max_gradients)),
-#               cmap,
-#               None)]),
-#             ('Overlay',
-#              [(format_for_plotting(denormalize(input_)), None, None),
-#               (format_for_plotting(standardize_and_clip(max_gradients)),
-#                cmap,
-#                alpha)])
-#         ]
-#
-#         fig = plt.figure(figsize=figsize)
-#
-#         for i, (title, images) in enumerate(subplots):
-#             ax = fig.add_subplot(1, len(subplots), i + 1)
-#             ax.set_axis_off()
-#             ax.set_title(title)
-#
-#             for image, cmap, alpha in images:
-#                 ax.imshow(image, cmap=cmap, alpha=alpha)
-#
-#         if return_output:
-#             return gradients, max_gradients
-#
-#     #####################
-#     # Private interface #
-#     #####################
-#
-#     def _register_lin_hook(self):
-#         def _record_gradients(module, grad_in, grad_out):
-#             if self.gradients.size() == grad_in[0].size():
-#                 print("ok")
-#                 self.gradients = grad_in[0]
-#
-#         for _, module in self.model.named_modules():
-#             if isinstance(module, nn.modules.Linear):
-#                 module.register_backward_hook(_record_gradients)
-#                 break
-#
-#     def _register_relu_hooks(self):
-#         def _record_output(module, input_, output):
-#             self.relu_outputs.append(output)
-#
-#         def _clip_gradients(module, grad_in, grad_out):
-#             relu_output = self.relu_outputs.pop()
-#             clippled_grad_out = grad_out[0].clamp(0.0)
-#
-#             return (clippled_grad_out.mul(relu_output),)
-#
-#         for _, module in self.model.named_modules():
-#             if isinstance(module, nn.ReLU):
-#                 module.register_forward_hook(_record_output)
-#                 module.register_backward_hook(_clip_gradients)
 #
 # """## 2) Get images and models
 #
@@ -435,8 +94,6 @@
 # model_densenet = models.densenet201(pretrained=True)
 # model_vgg = models.vgg16(pretrained=True)
 #
-# model1 = NeuralNet(28*28, [128, 64], 10)
-# model2 = NeuralNetSeq()
 #
 # """## 3) Test code that works (demo)
 #
@@ -640,45 +297,3 @@ for images, labels in test_loader:
     relevance = lrp1.lrp(images[0].view(-1, 28 * 28), debug=True, _return=True, rho="lin")
     relevance2 = lrp1.lrp(images[0].view(-1, 28 * 28), debug=True, _return=True, rho="relu")
     break
-#
-# # print(outputActivationValues[1])
-# # outputActivationValues[1].sum().item()
-#
-# # print(outputActivationValues[1][0][3])
-#
-# """test backprop met 1 layer"""
-#
-# module = model.layer3
-#
-#
-# def function(val):
-#     return val
-#
-#
-# layer_relevance = torch.zeros(1, 64)  # maak een lege tensor
-# for j in range(64):
-#     cj = 0
-#     for k in range(10):
-#         zk = (outputActivationValues[1] * module.weight[k]).sum().item()
-#         sk = outputActivationValues[1][0][k].item() / zk
-#         cj += function(module.weight[k][j].item()) * sk
-#     layer_relevance[0][j] = outputActivationValues[1][0][j].item() * cj
-# relevance[1] = layer_relevance
-#
-# print(relevance[1])
-#
-# print(module.weight.size())
-
-# #backup
-# layer_relevance = #maak een lege tensor
-#   cj = 0
-#   for j in range():
-#     for k in range():
-#       zk = (outputActivationValues[integer] * module.weight[k]).sum().item()
-#       sk = outputActivationValues[integer][k].item() / zk
-#       cj += function(module.weight[k][j].item()) * sk
-#     layer_relevance.add(outputActivationValues[integer][0][j].item() * cj)
-#
-#   relevance.append(layer_relevance)
-#
-# layers = list(model._modules.items())
