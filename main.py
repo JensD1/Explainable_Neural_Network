@@ -22,87 +22,30 @@ from PIL import Image
 
 print("Initializing...")
 
-run_saliency = False
-run_activation_max = False
-run_lrp = False
+trainset = datasets.MNIST('', download=True, train=True, transform=transforms.ToTensor())
+testset = datasets.MNIST('', download=True, train=False, transform=transforms.ToTensor())
 
-"""## 2) Get images and models"""
-if run_saliency or run_activation_max:
-    image = Image.open('images/great_grey_owl.jpg')
-    image2 = Image.open('images/peacock.jpg')
+train_loader = DataLoader(trainset, batch_size=64, shuffle=True)
+test_loader = DataLoader(testset, batch_size=64, shuffle=True)
 
-    fig = plt.figure()
-    a = fig.add_subplot(1, 2, 1)
-    plt.imshow(image)
-    a.set_title('Original image: Great grey owl')
-    a.axis('off')
-    a = fig.add_subplot(1, 2, 2)
-    plt.imshow(image2)
-    a.set_title('Original image: Peacock')
-    a.axis('off')
-    plt.show()
-
-if run_lrp:
-    trainset = datasets.MNIST('', download=True, train=True, transform=transforms.ToTensor())
-    testset = datasets.MNIST('', download=True, train=False, transform=transforms.ToTensor())
-
-    train_loader = DataLoader(trainset, batch_size=64, shuffle=True)
-    test_loader = DataLoader(testset, batch_size=64, shuffle=True)
-
-"""### Models
-
-Loading some models to test our neural network manager.
-"""
 model_alexnet = models.alexnet(pretrained=True)
 model_densenet = models.densenet201(pretrained=True)
 model_vgg = models.vgg16(pretrained=True)
-netw = convolutional.Convolutional()
-netw.set_model(model_alexnet)
-netw2 = convolutional.Convolutional()
-netw2.set_model(model_densenet)
-netw3 = convolutional.Convolutional()
-netw3.set_model(model_vgg)
 
-"""### Activation_maximisation
-
-#### *all Convolutional layers*
-
-This is the most general form for activation maximisation. Every convolutional layer will have a turn to show 4 random filters. (4 is the default number of features in flashtorch.
-"""
-if run_activation_max:
-    netw.activation_maximisation(last_layer=True, use_gpu=True)
-    plt.show()
-    netw2.activation_maximisation(last_layer=True, use_gpu=True)
-    plt.show()
-    netw3.activation_maximisation(last_layer=True, use_gpu=True)
-    plt.show()
-
-"""create MLP models"""
 model1 = net.NeuralNet(28 * 28, [128, 64], 10)
 model2 = netSeq.NeuralNetSeq()
 model1.load_state_dict(torch.load("mnist_model.pt"))
 model2.load_state_dict(torch.load("mnist_model_seq.pt"))
-lrp1 = multilayerperceptron.MLP()
-lrp1.set_model(model1)
-lrp2 = multilayerperceptron.MLP()
-lrp2.set_model(model2)
-
-"""code runnen: hooks worden eerst geplaatst (op een copie zodat deze niet opgeslagen worden op het oorspronkelijk 
-model) Vervolgens zullen we een forward functie uitproberen. """
-if run_lrp:
-    for images, labels in test_loader:
-        relevance = lrp1.lrp(images[0].view(-1, 28 * 28), debug=True, _return=True, rho="lin")
-        relevance2 = lrp1.lrp(images[0].view(-1, 28 * 28), debug=True, _return=True, rho="relu")
-        break
 
 #
 # ------------------------------------------------------Menu------------------------------------------------------------
 #
 running = True
-model = None
-modelType = None
+model = model1  # todo set to None
+modelType = "Linear"  # todo set to None
 convManager = convolutional.Convolutional()
 mlpManager = multilayerperceptron.MLP()
+mlpManager.set_model(model)  # todo remove line
 
 availableModels = {
     "alexNet": model_alexnet,
@@ -435,6 +378,10 @@ while running:
             print("This is not an available command!")
     elif modelType == "Linear":
         if _input == "!lrp":
+            for images, labels in test_loader:
+                relevance = mlpManager.lrp(images[0].view(-1, 28 * 28), debug=True, _return=True, rho="lin")
+                relevance2 = mlpManager.lrp(images[0].view(-1, 28 * 28), debug=True, _return=True, rho="relu")
+                break
             print("Layer wise relevance propagation is running...")  # todo
         else:
             print("This is not an available command!")
