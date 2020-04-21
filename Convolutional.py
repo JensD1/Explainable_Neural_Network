@@ -6,18 +6,20 @@ from flashtorch.saliency import Backprop
 from flashtorch.activmax import GradientAscent
 import copy
 import torch.nn as nn
+import ModelFunctions as mf
 
 
-class NNManager:
-    def __init__(self, NN, EPOCHS=3):
+class Convolutional:
+    def __init__(self):
         # variables
-        self.model = NN
+        self.model = None
 
     def get_model(self):
         return self.model
 
     def set_model(self, model):
-        self.model = model
+        self.model = copy.deepcopy(model)
+        self.model.eval()
 
     def image_to_tensor(self, input_):
         return apply_transforms(input_)
@@ -42,7 +44,7 @@ class NNManager:
         bool          return_output = return the output if you want to grasp the optimized data.
         array/int     filter       = the requested filter(s)
     """
-
+    #todo make sure this method works with everything
     def activation_maximisation(self, img_size=224, lr=1., use_gpu=False, filters=None, conv_layer_int=None,
                                 random=False, return_output=False):
         g_ascent = GradientAscent(self.model.features, img_size=img_size, lr=lr, use_gpu=use_gpu)
@@ -74,10 +76,10 @@ class NNManager:
         if return_output:
             return return_value
 
-    def deepdream(self, img_path, conv_layer_int, filter_idx, img_size=224, lr=.1, num_iter=20, figsize=(4, 4),
-                  title='DeepDream', return_output=False, use_gpu=False):
+    def deepdream(self, img_path, filter_idx, img_size=224, lr=.1, num_iter=20, figsize=(4, 4),
+                  title='DeepDream', return_output=False, use_gpu=False):  # will always be created from the last layer.
+        layer = mf.get_last_conv_layer(self.model)
         g_ascent = GradientAscent(self.model.features, img_size=img_size, lr=lr, use_gpu=use_gpu)
-        layer = self.model.features[conv_layer_int]
         return_value = g_ascent.deepdream(img_path, layer, filter_idx, lr=lr, num_iter=num_iter, figsize=figsize,
                                           title=title, return_output=True)
         if return_output:

@@ -5,9 +5,18 @@ import copy
 import sys
 
 
-class LRP:
+class MLP:
 
-    def __init__(self, model):
+    def __init__(self):
+        self.model = None
+
+    #
+    # --------------------------------------------------Methods---------------------------------------------------------
+    #
+    def get_model(self):
+        return self.model
+
+    def set_model(self, model):
         self.model = copy.deepcopy(model)  # make sure that you won't adjust the original model by registering hooks.
         self.model.eval()
         self.register_activation_hook()
@@ -19,11 +28,8 @@ class LRP:
         self._input = None
         self.rho = "lin"
 
-    #
-    # --------------------------------------------------Methods---------------------------------------------------------
-    #
     def lrp(self, _input, debug=False, _return=False, rho="lin"):
-        # To Do
+        # todo
         # veralgemenen zodat verschillende inputs gegeven kunnen worden en verschillende netwerken
         self._input = _input
         if debug:
@@ -141,7 +147,7 @@ class LRP:
             if isinstance(layer, nn.ReLU) or isinstance(layer, nn.Softmax) or isinstance(layer, nn.LogSoftmax):
                 layer.register_forward_hook(activation_hook)
 
-    # To do:
+    # todo:
     # efficienter maken door enkel tensor bewerkingen uit te voeren
     # Zorgen dat eender welk neuraal netwerk werkt!
     def register_backward_lin_hook(self):

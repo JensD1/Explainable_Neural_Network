@@ -12,17 +12,19 @@ from torchvision import transforms, datasets
 
 import NeuralNet as net
 import NeuralNetSeq as netSeq
-import LRP as layerwiseRelevancePropagation
-import NNManager as manager
+import MLP as multilayerperceptron
+import Convolutional as convolutional
+import ModelFunctions as mf
 
 import matplotlib.pyplot as plt
 
 from PIL import Image
 
+print("Initializing...")
 
 run_saliency = False
 run_activation_max = False
-run_lrp = True
+run_lrp = False
 
 """## 2) Get images and models"""
 if run_saliency or run_activation_max:
@@ -51,13 +53,15 @@ if run_lrp:
 
 Loading some models to test our neural network manager.
 """
-if run_saliency or run_activation_max:
-    model_alexnet = models.alexnet(pretrained=True)
-    model_densenet = models.densenet201(pretrained=True)
-    model_vgg = models.vgg16(pretrained=True)
-    netw = manager.NNManager(model_alexnet)
-    netw2 = manager.NNManager(model_densenet)
-    netw3 = manager.NNManager(model_vgg)
+model_alexnet = models.alexnet(pretrained=True)
+model_densenet = models.densenet201(pretrained=True)
+model_vgg = models.vgg16(pretrained=True)
+netw = convolutional.Convolutional()
+netw.set_model(model_alexnet)
+netw2 = convolutional.Convolutional()
+netw2.set_model(model_densenet)
+netw3 = convolutional.Convolutional()
+netw3.set_model(model_vgg)
 
 """### Saliency
 
@@ -123,20 +127,15 @@ if run_activation_max:
     netw3.activation_maximisation(use_gpu=True, conv_layer_int=28, filters=5)
     plt.show()
 
-"""Finally, we will create a deepdream."""
-if run_activation_max:
-    netw3.deepdream('images/great_grey_owl.jpg', 28, 24, use_gpu=True)
-    # netw2.activation_maximisation(use_gpu=True) This type of network does not yet work.
-    plt.show()
-
 """create MLP models"""
-if run_lrp:
-    model1 = net.NeuralNet(28 * 28, [128, 64], 10)
-    model2 = netSeq.NeuralNetSeq()
-    model1.load_state_dict(torch.load("mnist_model.pt"))
-    model2.load_state_dict(torch.load("mnist_model_seq.pt"))
-    lrp1 = layerwiseRelevancePropagation.LRP(model1)
-    lrp2 = layerwiseRelevancePropagation.LRP(model2)
+model1 = net.NeuralNet(28 * 28, [128, 64], 10)
+model2 = netSeq.NeuralNetSeq()
+model1.load_state_dict(torch.load("mnist_model.pt"))
+model2.load_state_dict(torch.load("mnist_model_seq.pt"))
+lrp1 = multilayerperceptron.MLP()
+lrp1.set_model(model1)
+lrp2 = multilayerperceptron.MLP()
+lrp2.set_model(model2)
 
 """code runnen: hooks worden eerst geplaatst (op een copie zodat deze niet opgeslagen worden op het oorspronkelijk 
 model) Vervolgens zullen we een forward functie uitproberen. """
@@ -145,3 +144,99 @@ if run_lrp:
         relevance = lrp1.lrp(images[0].view(-1, 28 * 28), debug=True, _return=True, rho="lin")
         relevance2 = lrp1.lrp(images[0].view(-1, 28 * 28), debug=True, _return=True, rho="relu")
         break
+
+running = True
+model = None
+modelType = None
+convManager = convolutional.Convolutional()
+mlpManager = multilayerperceptron.MLP()
+availableModels = {
+    "alexNet": model_alexnet,
+    "denseNet": model_densenet,
+    "vgg": model_vgg,
+    "mlp": model1,
+    "mlpSeq": model2
+}
+
+while running:
+    if model is None:
+        print("You should select a model to use first, you can switch to another model later on!")
+    _input = input("type a command: (type '!help' to view the available commands)\n")
+
+    if _input == "!help":
+        print("The general commands you can do are:")
+        print("!listModels: \t\tprints a list of all available models.")
+        print("!selectModel: \t\tselect the model to explain.")
+        print("!showModel: \t\tshows the current model.")
+        print("!addModel: \t\tadd a new model.")  # todo
+        print("!deleteModel: \t\tdelete a model.")  # todo
+        print("!quit: \t\t\tquits this program.")
+        if model is not None:
+            if modelType == "Convolutional":
+                print("\nThe convolutional specific commands you can do are:")
+                print("!saliency: \t\tuses the saliency explainability method.")  # todo
+                print("!activmax: \t\tuses activation maximisation as explainability method.")  # todo
+                print("!deepdream: \t\tcreate a deepdream from an image.")  # todo
+            elif modelType == "Linear":
+                print("\nThe multilayer perceptron specific commands you can do are:")
+                print("!lrp: \t\t\tlayer wise relevance propagation explainability method.")  # todo
+    elif _input == "!listModels":
+        for tempModel in availableModels:
+            print(tempModel)
+    elif _input == "!selectModel":
+        ischanged = False
+        while _input != "!exit" and not ischanged:
+            print("Give the name of the model:")
+            print("(type !list to see all possibilities.)")
+            print("(type !exit if you don't want to change the model anymore.)")
+            print("(type !current if you want to see the current model.")
+            _input = input()
+            if _input == "!list":
+                for tempModel in availableModels:
+                    print(tempModel)
+                print()
+            elif _input == "!current":
+                print(model)
+                print()
+            elif _input in availableModels:
+                ischanged = True
+                model = availableModels.get(_input, None)
+                if model is None:
+                    print("This is not an available model. You can print all available models with: !listModels.")
+                    modelType = None
+                else:
+                    modelType = mf.get_model_type(model)
+                    if modelType == "Convolutional":
+                        convManager.set_model(model)
+                    elif modelType == "Linear":
+                        mlpManager.set_model(model)
+            elif _input == "!exit":
+                print("The model is not changed..")
+            else:
+                print("Not a valid command/model.")
+    elif _input == "!showModel":
+        print(model)
+    elif _input == "!quit":
+        running = False
+    elif modelType == "Convolutional":
+        if _input == "!saliency":
+            print("Saliency is running...")  # todo
+        elif _input == "!activmax":
+            print("Activation maximisation is running...")  # todo
+        elif _input == "!deepdream":
+            path = input("Give the path to the image:\n")
+            filter_number = int(input("Give the requested filter number:\n"))
+            print("Deepdream is running...")
+            convManager.deepdream(path, filter_number, use_gpu=True)
+            plt.show()
+        else:
+            print("This is not an available command!")
+    elif modelType == "Linear":
+        if _input == "!lrp":
+            print("Layer wise relevance propagation is running...")  # todo
+        else:
+            print("This is not an available command!")
+    else:
+        print("This is not an available command!")
+    print()
+
