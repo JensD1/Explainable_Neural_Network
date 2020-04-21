@@ -1,4 +1,7 @@
 import torch.nn as nn
+from PIL import Image
+import torchvision.transforms.functional as F
+import torchvision.transforms as transforms
 
 
 def get_model_type(model):
@@ -83,4 +86,23 @@ def get_all_lin_layers(model):
     return LinLayers.layers
 
 
+def apply_transforms(image, size=28):
+    if not isinstance(image, Image.Image):
+        image = F.to_pil_image(image)
 
+    means = [0.485]
+    stds = [0.229]
+
+    transform = transforms.Compose([
+        transforms.Grayscale(num_output_channels=1),
+        transforms.Resize(size),
+        transforms.CenterCrop(size),
+        transforms.ToTensor(),
+        transforms.Normalize(means, stds)
+    ])
+
+    tensor = (1 - transform(image)).view(-1, size * size)  # make sure the highlighted feature is the text itself.
+
+    tensor.requires_grad = True
+
+    return tensor

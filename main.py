@@ -379,6 +379,9 @@ while running:
     elif modelType == "Linear":
         if _input == "!lrp":
             for images, labels in test_loader:
+                image = Image.open("images/number.jpg").convert('LA')
+                relevance = mlpManager.lrp(image, debug=True, _return=True, rho="lin")
+                relevance2 = mlpManager.lrp(image, debug=True, _return=True, rho="relu")
                 relevance = mlpManager.lrp(images[0].view(-1, 28 * 28), debug=True, _return=True, rho="lin")
                 relevance2 = mlpManager.lrp(images[0].view(-1, 28 * 28), debug=True, _return=True, rho="relu")
                 break

@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import copy
 import sys
 import ModelFunctions as mf
+import math
+from PIL import Image
 
 
 class MLP:
@@ -31,7 +33,11 @@ class MLP:
 
     def lrp(self, _input, debug=False, _return=False, rho="lin"):
         # todo veralgemenen zodat verschillende inputs gegeven kunnen worden en verschillende netwerken
-        self._input = _input
+        if isinstance(_input, Image.Image) or len(list(_input.view(-1))) != self.lin_layers[0][1].in_features:
+            self._input = mf.apply_transforms(_input, size=int(math.sqrt(self.lin_layers[0][1].in_features)))
+        else:
+            self._input = _input.view(-1, self.lin_layers[0][1].in_features)
+
         if debug:
             print("\n-------------------------------------------------------------------------------------------------")
             print("Input")
@@ -39,7 +45,8 @@ class MLP:
             print(self._input.dtype)
             print(self._input.size())
 
-        plt.imshow(self._input.view(28, 28))
+        _input = self._input.detach()
+        plt.imshow(_input.view(int(math.sqrt(self.lin_layers[0][1].in_features)), int(math.sqrt(self.lin_layers[0][1].in_features))))
         plt.show()
 
         self.output_activation_values.clear()
@@ -126,8 +133,8 @@ class MLP:
                 i += 1
                 print("\nsum of all relevances from layer %d:" % i)
                 print(relevance_layer.sum())
-
-        plt.imshow(self.relevance[len(self.relevance) - 1].view(28, 28))
+        print(int(math.sqrt(len(list(self.relevance[len(self.relevance) - 1][0])))))
+        plt.imshow(self.relevance[len(self.relevance) - 1].view(int(math.sqrt(len(list(self.relevance[len(self.relevance) - 1][0])))), int(math.sqrt(len(list(self.relevance[len(self.relevance) - 1][0]))))))
         plt.show()
 
         if _return:
