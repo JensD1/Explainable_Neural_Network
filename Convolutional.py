@@ -95,7 +95,7 @@ class Convolutional:
             return return_value
 
     def deepdream(self, img_path, filter_idx, img_size=224, lr=.1, num_iter=20, figsize=(4, 4),
-                  title='DeepDream', return_output=False, use_gpu=False):  # will always be created from the last layer.
+                  title='DeepDream', return_output=False, use_gpu=True):  # will always be created from the last layer.
         layer = mf.get_last_conv_layer(self.model)
         g_ascent = GradientAscent(self.model.features, img_size=img_size, lr=lr, use_gpu=use_gpu)
         return_value = g_ascent.deepdream(img_path, layer, filter_idx, lr=lr, num_iter=num_iter, figsize=figsize,

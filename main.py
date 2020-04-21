@@ -126,6 +126,11 @@ activmax_options = {
     "conv_layer_int": None,
     "return_output": False
 }
+deepdream_options = {
+    "imagepath": "images/Uil.jpg",
+    "filter": 0,
+    "use_gpu": True
+}
 
 while running:
     if model is None:
@@ -190,6 +195,8 @@ while running:
         running = False
     elif modelType == "Convolutional":
         if _input == "!saliency":
+            # yet again a copy of the model, otherwise you can get problems wit use_gpu functions
+            convManager.set_model(model)
             _exit = False
             print("You can adjust the settings, see !help for more information.")
             while not _exit:
@@ -284,7 +291,8 @@ while running:
                     print("Not an available command, type !help to see all available commands.")
         elif _input == "!activmax":
             print("You can change the requested options, type !help for more insight.")
-            print("Type !start if you want to start activation maximisation.")
+            # yet again a copy of the model, otherwise you can get problems wit use_gpu functions
+            convManager.set_model(model)
             _exit = False
             while not _exit:
                 _input = input("Type !start to start activation maximisation\n")
@@ -369,11 +377,60 @@ while running:
                 else:
                     print("Not an available command, type !help to see all available commands.")
         elif _input == "!deepdream":
-            path = input("Give the path to the image:\n")
-            filter_number = int(input("Give the requested filter number:\n"))
-            print("Deepdream is running...")
-            convManager.deepdream(path, filter_number, use_gpu=True)
-            plt.show()
+            print("You can change the requested options, type !help for more insight.")
+            # yet again a copy of the model, otherwise you can get problems wit use_gpu functions
+            convManager.set_model(model)
+            _exit = False
+            while not _exit:
+                _input = input("Type !start to start creating the deepdream\n")
+                if _input == "!help":
+                    print("The available commandos are:")
+                    print("!start: \t\tstart the deepdream with the current options")
+                    print("!listOptions: \t\tlists all the current option values.")
+                    print("!exit: \t\t\texit deepdream.")
+                    print("You can adjust the next options:")
+                    for option in deepdream_options:
+                        print("!", end="")
+                        print(option)
+                    print()
+                elif _input == "!exit":
+                    print("deepdream won't be created...")
+                    _exit = True
+                elif _input == "!listOptions":
+                    for option in deepdream_options:
+                        print(option, end="")
+                        print(":\t\t", end="")
+                        print(deepdream_options.get(option))
+                    print()
+                elif _input == "!imagepath":
+                    deepdream_options["imagepath"] = input("Give the path to the image:\n")
+                    print()
+                elif _input == "!filter":
+                    deepdream_options["filter"] = int(input("Give the requested filter number:\n"))
+                    print()
+                elif _input == "!use_gpu":
+                    _input = input("Set the value for use_gpu, must be True or False:\n")
+                    if _input in ["True", "true", "t", "T"]:
+                        deepdream_options["use_gpu"] = True
+                        print("use_gpu is set to:", end="")
+                        print(deepdream_options.get("use_gpu"))
+                        print()
+                    elif _input in ["False", "false", "f", "F"]:
+                        deepdream_options["use_gpu"] = False
+                        print("use_gpu is set to:", end="")
+                        print(deepdream_options.get("use_gpu"))
+                        print()
+                    else:
+                        print("Not an available option...\n")
+                elif _input == "!start":
+                    _exit = True
+                    print("Creating the deepdream...")
+                    convManager.deepdream(deepdream_options.get("imagepath"),
+                                          deepdream_options.get("filter"),
+                                          use_gpu=deepdream_options.get("use_gpu"))
+                    plt.show()
+                else:
+                    print("Not an available command, type !help to see all available commands.")
         else:
             print("This is not an available command!")
     elif modelType == "Linear":
