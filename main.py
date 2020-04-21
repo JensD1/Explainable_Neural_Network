@@ -145,11 +145,15 @@ if run_lrp:
         relevance2 = lrp1.lrp(images[0].view(-1, 28 * 28), debug=True, _return=True, rho="relu")
         break
 
+#
+# ------------------------------------------------------Menu------------------------------------------------------------
+#
 running = True
 model = None
 modelType = None
 convManager = convolutional.Convolutional()
 mlpManager = multilayerperceptron.MLP()
+
 availableModels = {
     "alexNet": model_alexnet,
     "denseNet": model_densenet,
@@ -220,7 +224,18 @@ while running:
         running = False
     elif modelType == "Convolutional":
         if _input == "!saliency":
-            print("Saliency is running...")  # todo
+            path = input("Give the path to the image:\n")
+            image = Image.open(path)
+            expected_outcome = int(input("Give the expected outcome: (so we can notify you if the image is wrongly "
+                                         "categorized)\n"))
+            _input = input("Do you want guidance?\n")
+            print("Saliency is running...")
+            if _input in ["y", "Y", "yes", "Yes"]:
+                convManager.saliency_map(image, expected_outcome, guided=True)
+                plt.show()
+            elif _input in ["n", "N", "No", "no"]:
+                convManager.saliency_map(image, expected_outcome)
+                plt.show()
         elif _input == "!activmax":
             print("Activation maximisation is running...")  # todo
         elif _input == "!deepdream":
