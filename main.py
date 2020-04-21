@@ -63,35 +63,6 @@ netw2.set_model(model_densenet)
 netw3 = convolutional.Convolutional()
 netw3.set_model(model_vgg)
 
-"""### Saliency
-
-Saliency map with an owl (while using the alexnet model).
-This gives us two rows, the first one is without guidance and the second one with guidance (see: `Striving for Simplicity: The All Convolutional Net <https://arxiv.org/pdf/1412.6806.pdf>`).
-"""
-if run_saliency:
-    netw.saliency_map(image, 24, guided=False, use_gpu=False)
-    plt.show()
-    netw.saliency_map(image, 24, guided=True, use_gpu=False)
-    plt.show()
-
-"""Saliency map but with a peacock (with the alexnet model)."""
-if run_saliency:
-    netw.saliency_map(image2, 84, guided=False, use_gpu=False)
-    plt.show()
-    netw.saliency_map(image2, 84, guided=True, use_gpu=False)
-    plt.show()
-
-"""Saliency map from both an own and a peacock while using the densenet model."""
-if run_saliency:
-    netw2.saliency_map(image, 24, guided=False, use_gpu=False)
-    plt.show()
-    netw2.saliency_map(image, 24, guided=True, use_gpu=False)
-    plt.show()
-    netw2.saliency_map(image2, 84, guided=False, use_gpu=False)
-    plt.show()
-    netw2.saliency_map(image2, 84, guided=True, use_gpu=False)
-    plt.show()  # make sure that everything is plotted en the next image will be plotted in a new window.
-
 """### Activation_maximisation
 
 #### *all Convolutional layers*
@@ -99,32 +70,11 @@ if run_saliency:
 This is the most general form for activation maximisation. Every convolutional layer will have a turn to show 4 random filters. (4 is the default number of features in flashtorch.
 """
 if run_activation_max:
-    netw.activation_maximisation(use_gpu=True)
+    netw.activation_maximisation(last_layer=True, use_gpu=True)
     plt.show()
-
-"""The code below will give the same result as above, but ofcoarse with some randomness in the filters."""
-if run_activation_max:
-    netw.activation_maximisation(use_gpu=True, random=True)
+    netw2.activation_maximisation(last_layer=True, use_gpu=True)
     plt.show()
-
-"""Now we will select the filters that we want to see."""
-if run_activation_max:
-    netw.activation_maximisation(use_gpu=True, filters=[2, 20])
-    plt.show()
-
-"""#### *One convolutional layer*
-
-From now on we select the convolutional layer on which we will preform activation maximisation.
-"""
-if run_activation_max:
-    # list(model_alexnet.features.named_children()) #f.e. layer 3 is a conv2d layer
-    netw.activation_maximisation(use_gpu=True, conv_layer_int=3)
-    plt.show()
-
-"""Now we will specify which filter we want to see."""
-if run_activation_max:
-    #list(model_vgg.features.named_children()) # f.e. layer 28 is a convolutional layer
-    netw3.activation_maximisation(use_gpu=True, conv_layer_int=28, filters=5)
+    netw3.activation_maximisation(last_layer=True, use_gpu=True)
     plt.show()
 
 """create MLP models"""
@@ -161,6 +111,21 @@ availableModels = {
     "mlp": model1,
     "mlpSeq": model2
 }
+saliency_options = {
+    "Guidance": True,
+    "Expected": 0,
+    "use_gpu": False,
+    "return_output": False,
+    "Alpha": 0.5,
+    "image": Image.open("images/Uil.jpg")
+}
+activmax_options = {
+    "use_gpu": True,
+    "filters": None,
+    "last_layer": True,
+    "conv_layer_int": None,
+    "return_output": False
+}
 
 while running:
     if model is None:
@@ -188,8 +153,8 @@ while running:
         for tempModel in availableModels:
             print(tempModel)
     elif _input == "!selectModel":
-        ischanged = False
-        while _input != "!exit" and not ischanged:
+        _exit = False
+        while not _exit:
             print("Give the name of the model:")
             print("(type !list to see all possibilities.)")
             print("(type !exit if you don't want to change the model anymore.)")
@@ -203,7 +168,7 @@ while running:
                 print(model)
                 print()
             elif _input in availableModels:
-                ischanged = True
+                _exit = True
                 model = availableModels.get(_input, None)
                 if model is None:
                     print("This is not an available model. You can print all available models with: !listModels.")
@@ -215,6 +180,7 @@ while running:
                     elif modelType == "Linear":
                         mlpManager.set_model(model)
             elif _input == "!exit":
+                _exit = True
                 print("The model is not changed..")
             else:
                 print("Not a valid command/model.")
@@ -224,20 +190,184 @@ while running:
         running = False
     elif modelType == "Convolutional":
         if _input == "!saliency":
-            path = input("Give the path to the image:\n")
-            image = Image.open(path)
-            expected_outcome = int(input("Give the expected outcome: (so we can notify you if the image is wrongly "
-                                         "categorized)\n"))
-            _input = input("Do you want guidance?\n")
-            print("Saliency is running...")
-            if _input in ["y", "Y", "yes", "Yes"]:
-                convManager.saliency_map(image, expected_outcome, guided=True)
-                plt.show()
-            elif _input in ["n", "N", "No", "no"]:
-                convManager.saliency_map(image, expected_outcome)
-                plt.show()
+            _exit = False
+            print("You can adjust the settings, see !help for more information.")
+            while not _exit:
+                _input = input("Type !start to start the saliency\n")
+                if _input == "!help":
+                    print("The available commandos are:")
+                    print("!start: \t\tstart saliency with the current options")
+                    print("!listOptions: \t\tlists all the current option values.")
+                    print("!exit: \t\t\texit saliency.")
+                    print("You can adjust the next options:")
+                    for option in saliency_options:
+                        print("!", end="")
+                        print(option)
+                    print()
+                elif _input == "!exit":
+                    print("Saliency won't be performed...")
+                    print()
+                    _exit = True
+                elif _input == "!listOptions":
+                    for option in saliency_options:
+                        print(option, end="")
+                        print(":\t\t", end="")
+                        print(saliency_options.get(option))
+                    print()
+                elif _input == "!Guidance":
+                    _input = input("Set the value for guidance, must be True or False:\n")
+                    if _input in ["True", "true", "t", "T"]:
+                        saliency_options["Guidance"] = True
+                        print("Guidance is set to:", end="")
+                        print(saliency_options.get("Guidance"))
+                        print()
+                    elif _input in ["False", "false", "f", "F"]:
+                        saliency_options["Guidance"] = False
+                        print("Guidance is set to:", end="")
+                        print(saliency_options.get("Guidance"))
+                        print()
+                    else:
+                        print("Not an available option...\n")
+                elif _input == "!Expected":
+                    saliency_options["Expected"] = int(
+                        input("Give the expected outcome: (so we can notify you if the image is wrongly "
+                              "categorized)\n"))
+                    print("Expected is set to:", end="")
+                    print(saliency_options.get("Expected"))
+                    print()
+                elif _input == "!Alpha":
+                    saliency_options["Alpha"] = float(input("Give a new value for alpha:\n"))
+                    print("Alpha is set to:", end="")
+                    print(saliency_options.get("Alpha"))
+                    print()
+                elif _input == "!use_gpu":
+                    _input = input("Set the value for use_gpu, must be True or False:\n")
+                    if _input in ["True", "true", "t", "T"]:
+                        saliency_options["use_gpu"] = True
+                        print("use_gpu is set to:", end="")
+                        print(saliency_options.get("use_gpu"))
+                        print()
+                    elif _input in ["False", "false", "f", "F"]:
+                        saliency_options["use_gpu"] = False
+                        print("use_gpu is set to:", end="")
+                        print(saliency_options.get("use_gpu"))
+                        print()
+                    else:
+                        print("Not an available option...\n")
+                elif _input == "!return_output":
+                    _input = input("Set the value for return_output, must be True or False:\n")
+                    if _input in ["True", "true", "t", "T"]:
+                        saliency_options["return_output"] = True
+                        print("return_output is set to:", end="")
+                        print(saliency_options.get("return_output"))
+                    elif _input in ["False", "false", "f", "F"]:
+                        saliency_options["return_output"] = False
+                        print("return_output is set to:", end="")
+                        print(saliency_options.get("return_output"))
+                    else:
+                        print("Not an available option...\n")
+                elif _input == "!image":
+                    path = input("Give the path to the image:\n")
+                    saliency_options["image"] = Image.open(path)
+                elif _input == "!start":
+                    _exit = True
+                    print("Saliency is running...")
+                    convManager.saliency_map(saliency_options.get("image"),
+                                             saliency_options.get("Expected"),
+                                             guided=saliency_options.get("Guidance"),
+                                             use_gpu=saliency_options.get("use_gpu"),
+                                             return_output=saliency_options.get("return_output"),
+                                             alpha=saliency_options.get("Alpha")
+                                             )
+                    plt.show()
+                else:
+                    print("Not an available command, type !help to see all available commands.")
         elif _input == "!activmax":
-            print("Activation maximisation is running...")  # todo
+            print("You can change the requested options, type !help for more insight.")
+            print("Type !start if you want to start activation maximisation.")
+            _exit = False
+            while not _exit:
+                _input = input("Type !start to start activation maximisation\n")
+                if _input == "!help":
+                    print("The available commandos are:")
+                    print("!start: \t\tstart activation maximisation with the current options")
+                    print("!listOptions: \t\tlists all the current option values.")
+                    print("!exit: \t\t\texit activation maximisation.")
+                    print("You can adjust the next options:")
+                    for option in activmax_options:
+                        print("!", end="")
+                        print(option)
+                    print()
+                elif _input == "!exit":
+                    print("Activation maximisation won't be performed...")
+                    _exit = True
+                elif _input == "!listOptions":
+                    for option in activmax_options:
+                        print(option, end="")
+                        print(":\t\t", end="")
+                        print(activmax_options.get(option))
+                    print()
+                elif _input == "!use_gpu":
+                    _input = input("Set the value for use_gpu, must be True or False:\n")
+                    if _input in ["True", "true", "t", "T"]:
+                        activmax_options["use_gpu"] = True
+                        print("use_gpu is set to:", end="")
+                        print(activmax_options.get("use_gpu"))
+                        print()
+                    elif _input in ["False", "false", "f", "F"]:
+                        activmax_options["use_gpu"] = False
+                        print("use_gpu is set to:", end="")
+                        print(activmax_options.get("use_gpu"))
+                        print()
+                    else:
+                        print("Not an available option...\n")
+                elif _input == "!return_output":
+                    _input = input("Set the value for return_output, must be True or False:\n")
+                    if _input in ["True", "true", "t", "T"]:
+                        activmax_options["return_output"] = True
+                        print("return_output is set to:", end="")
+                        print(activmax_options.get("return_output"))
+                    elif _input in ["False", "false", "f", "F"]:
+                        activmax_options["return_output"] = False
+                        print("return_output is set to:", end="")
+                        print(activmax_options.get("return_output"))
+                    else:
+                        print("Not an available option...\n")
+                elif _input == "!last_layer":
+                    _input = input("Set the value for last_layer, must be True of False:\n")
+                    if _input in ["True", "true", "t", "T"]:
+                        activmax_options["last_layer"] = True
+                        print("last_layer is set to:", end="")
+                        print(activmax_options.get("last_layer"))
+                    elif _input in ["False", "false", "f", "F"]:
+                        activmax_options["last_layer"] = False
+                        print("last_layer is set to:", end="")
+                        print(activmax_options.get("last_layer"))
+                    else:
+                        print("Not an available option...")
+                elif _input == "!filters":
+                    _input = input("Give the filter(s) you want to see.\n")
+                    if _input == "None":
+                        activmax_options["filters"] = None
+                    else:
+                        activmax_options["filters"] = int(_input) # todo: make sure also multiple filters is possible.
+                elif _input == "!conv_layer_int":
+                    _input = input("Give the number corresponding with the convolutional layer you want to see.\n")
+                    if _input == "None":
+                        activmax_options["conv_layer_int"] = None
+                    else:
+                        activmax_options["conv_layer_int"] = int(_input)
+                elif _input == "!start":
+                    _exit = True
+                    print("Activation maximisation is running...")
+                    convManager.activation_maximisation(use_gpu=activmax_options.get("use_gpu"),
+                                                        filters=activmax_options.get("filters"),
+                                                        last_layer=activmax_options.get("last_layer"),
+                                                        conv_layer_int=activmax_options.get("conv_layer_int"),
+                                                        return_output=activmax_options.get("return_output"))
+                    plt.show()
+                else:
+                    print("Not an available command, type !help to see all available commands.")
         elif _input == "!deepdream":
             path = input("Give the path to the image:\n")
             filter_number = int(input("Give the requested filter number:\n"))

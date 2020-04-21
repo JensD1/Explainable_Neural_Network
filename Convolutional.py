@@ -8,6 +8,8 @@ import copy
 import torch.nn as nn
 import ModelFunctions as mf
 
+import matplotlib.pyplot as plt
+
 
 class Convolutional:
     def __init__(self):
@@ -44,34 +46,50 @@ class Convolutional:
         bool          return_output = return the output if you want to grasp the optimized data.
         array/int     filter       = the requested filter(s)
     """
-    #todo make sure this method works with everything
-    def activation_maximisation(self, img_size=224, lr=1., use_gpu=False, filters=None, conv_layer_int=None,
-                                random=False, return_output=False):
+    def activation_maximisation(self, img_size=224, lr=1., use_gpu=False, filters=None, last_layer=True,
+                                conv_layer_int=None, return_output=False):
         g_ascent = GradientAscent(self.model.features, img_size=img_size, lr=lr, use_gpu=use_gpu)
+        return_value = None
+        if not last_layer:
+            if conv_layer_int is not None:
+                conv_layer = self.model.features[conv_layer_int]
+                if filters is not None:
+                    return_value = g_ascent.visualize(conv_layer, filters,
+                                                      title=('one convolutional layer is shown, filters are chosen: '),
+                                                      return_output=True)
+                else:
+                    return_value = g_ascent.visualize(conv_layer,
+                                                      title=('one convolutional layer is shown, filters are at random: '),
+                                                      return_output=True)
 
-        if conv_layer_int is not None:
-            conv_layer = self.model.features[conv_layer_int]
-            if ((filters is not None) and (not random)):
-                return_value = g_ascent.visualize(conv_layer, filters,
-                                                  title=('one convolutional layer is shown, filters are chosen: '),
-                                                  return_output=True)
             else:
-                return_value = g_ascent.visualize(conv_layer,
-                                                  title=('one convolutional layer is shown, filters are at random: '),
-                                                  return_output=True)
+                features = mf.get_all_conv_layers(self.model)
+                if filters is not None:
+                    for feature in features:
+                        if isinstance(feature, nn.modules.conv.Conv2d):
+                            return_value = g_ascent.visualize(feature, filters, title=(
+                                'All convolutional layers are shown, filters are chosen: '), return_output=True)
+                            plt.show()
 
+                else:
+                    for feature in features:
+                        if isinstance(feature, nn.modules.conv.Conv2d):
+                            return_value = g_ascent.visualize(feature, title=(
+                                'All convolutional layers are shown, filters are at random: '), return_output=True)
+                            plt.show()
         else:
-            if ((filters is not None) and (not random)):
-                for feature in self.model.features:
-                    if isinstance(feature, nn.modules.conv.Conv2d):
-                        return_value = g_ascent.visualize(feature, filters, title=(
-                            'All convolutional layers are shown, filters are chosen: '), return_output=True)
+            feature = mf.get_last_conv_layer(self.model)
+            if filters is not None:
+                if isinstance(feature, nn.modules.conv.Conv2d):
+                    return_value = g_ascent.visualize(feature, filters, title=(
+                        'last convolutional layer is shown, filters are chosen: '), return_output=True)
+                    plt.show()
 
             else:
-                for feature in self.model.features:
-                    if isinstance(feature, nn.modules.conv.Conv2d):
-                        return_value = g_ascent.visualize(feature, title=(
-                            'All convolutional layers are shown, filters are at random: '), return_output=True)
+                if isinstance(feature, nn.modules.conv.Conv2d):
+                    return_value = g_ascent.visualize(feature, title=(
+                        'last convolutional layer is shown, filters are at random: '), return_output=True)
+                    plt.show()
 
         if return_output:
             return return_value
