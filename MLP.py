@@ -3,6 +3,9 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 import copy
 import sys
+import ModelFunctions as mf
+import math
+from PIL import Image
 
 
 class MLP:
@@ -22,16 +25,19 @@ class MLP:
         self.register_activation_hook()
         self.register_backward_lin_hook()
         self.output_activation_values = []
-        self.layers = list(self.model._modules.items())
+        self.lin_layers = mf.get_all_lin_layers(self.model)
         self.current_layer = 0
         self.relevance = [None]
         self._input = None
         self.rho = "lin"
 
     def lrp(self, _input, debug=False, _return=False, rho="lin"):
-        # todo
-        # veralgemenen zodat verschillende inputs gegeven kunnen worden en verschillende netwerken
-        self._input = _input
+        # todo veralgemenen zodat verschillende inputs gegeven kunnen worden en verschillende netwerken
+        if isinstance(_input, Image.Image) or len(list(_input.view(-1))) != self.lin_layers[0][1].in_features:
+            self._input = mf.apply_transforms(_input, size=int(math.sqrt(self.lin_layers[0][1].in_features)))
+        else:
+            self._input = _input.view(-1, self.lin_layers[0][1].in_features)
+
         if debug:
             print("\n-------------------------------------------------------------------------------------------------")
             print("Input")
@@ -39,7 +45,8 @@ class MLP:
             print(self._input.dtype)
             print(self._input.size())
 
-        plt.imshow(self._input.view(28, 28))
+        _input = self._input.detach()
+        plt.imshow(_input.view(int(math.sqrt(self.lin_layers[0][1].in_features)), int(math.sqrt(self.lin_layers[0][1].in_features))))
         plt.show()
 
         self.output_activation_values.clear()
@@ -52,9 +59,15 @@ class MLP:
             print(output.topk(1, dim=1))
 
             print("\n-------------------------------------------------------------------------------------------------")
-            print("The layers of this module")
+            print("All layers of this module")
             print("-------------------------------------------------------------------------------------------------\n")
-            for layer in self.layers:
+            for layer in list(self.model._modules.items()):
+                print(layer)
+
+            print("\n-------------------------------------------------------------------------------------------------")
+            print("The lin layers of this module")
+            print("-------------------------------------------------------------------------------------------------\n")
+            for layer in self.lin_layers:
                 print(layer)
 
             print("\n-------------------------------------------------------------------------------------------------")
@@ -70,9 +83,8 @@ class MLP:
 
         # Get the number of Linear layers
         amount_of_linear_layers = 0  # make sure that this is 0.
-        for name, layer in self.layers:
-            if isinstance(layer, nn.Linear):
-                amount_of_linear_layers += 1
+        for name, layer in self.lin_layers:
+            amount_of_linear_layers += 1
         self.current_layer = amount_of_linear_layers
 
         if debug:
@@ -121,8 +133,8 @@ class MLP:
                 i += 1
                 print("\nsum of all relevances from layer %d:" % i)
                 print(relevance_layer.sum())
-
-        plt.imshow(self.relevance[len(self.relevance) - 1].view(28,28))
+        print(int(math.sqrt(len(list(self.relevance[len(self.relevance) - 1][0])))))
+        plt.imshow(self.relevance[len(self.relevance) - 1].view(int(math.sqrt(len(list(self.relevance[len(self.relevance) - 1][0])))), int(math.sqrt(len(list(self.relevance[len(self.relevance) - 1][0]))))))
         plt.show()
 
         if _return:
