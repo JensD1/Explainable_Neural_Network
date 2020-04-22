@@ -15,6 +15,7 @@ import NeuralNetSeq as netSeq
 import MLP as multilayerperceptron
 import Convolutional as convolutional
 import ModelFunctions as mf
+import trainer as trainer
 
 import matplotlib.pyplot as plt
 
@@ -34,25 +35,27 @@ model_vgg = models.vgg16(pretrained=True)
 
 model1 = net.NeuralNet(28 * 28, [128, 64], 10)
 model2 = netSeq.NeuralNetSeq()
+model3 = net.NeuralNet(29 * 29, [128, 64], 10)
 model1.load_state_dict(torch.load("mnist_model.pt"))
 model2.load_state_dict(torch.load("mnist_model_seq.pt"))
+model3.load_state_dict(torch.load("mnist_model_29x29.pt"))
 
 #
 # ------------------------------------------------------Menu------------------------------------------------------------
 #
 running = True
-model = model1  # todo set to None
-modelType = "Linear"  # todo set to None
+model = None
+modelType = None
 convManager = convolutional.Convolutional()
 mlpManager = multilayerperceptron.MLP()
-mlpManager.set_model(model)  # todo remove line
 
 availableModels = {
     "alexNet": model_alexnet,
     "denseNet": model_densenet,
     "vgg": model_vgg,
     "mlp": model1,
-    "mlpSeq": model2
+    "mlpSeq": model2,
+    "mlp29": model3
 }
 saliency_options = {
     "Guidance": True,
