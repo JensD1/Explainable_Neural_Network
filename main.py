@@ -81,7 +81,7 @@ lrp_options = {
     "image_path": "images/number.jpg",
     "use_MNIST": True,
     "rho": "relu",
-    "debug": True,  # todo set to false by default.
+    "debug": False,  # todo set to false by default.
     "return_output": False,
     "use_gpu": True  # todo make an option for use_gpu!
 }

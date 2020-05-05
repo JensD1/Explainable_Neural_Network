@@ -83,7 +83,7 @@ class MLP:
 
         # Get the number of Linear layers
         amount_of_linear_layers = 0  # make sure that this is 0.
-        for name, layer in self.lin_layers:
+        for _ in self.lin_layers:
             amount_of_linear_layers += 1
         self.current_layer = amount_of_linear_layers
 
