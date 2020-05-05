@@ -44,8 +44,8 @@ model3.load_state_dict(torch.load("mnist_model_29x29.pt"))
 # ------------------------------------------------------Menu------------------------------------------------------------
 #
 running = True
-model = None
-modelType = None
+model = model1  #todo set back to None
+modelType = "Linear"  #todo set back to None
 convManager = convolutional.Convolutional()
 mlpManager = multilayerperceptron.MLP()
 
@@ -79,9 +79,9 @@ deepdream_options = {
 }
 lrp_options = {
     "image_path": "images/number.jpg",
-    "use_MNIST": True,
+    "use_MNIST": False,  # todo set to true
     "rho": "relu",
-    "debug": False,  # todo set to false by default.
+    "debug": True,  # todo set to false by default.
     "return_output": False,
     "use_gpu": True  # todo make an option for use_gpu!
 }

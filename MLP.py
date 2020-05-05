@@ -159,30 +159,26 @@ class MLP:
             if isinstance(layer, nn.ReLU) or isinstance(layer, nn.Softmax) or isinstance(layer, nn.LogSoftmax):
                 layer.register_forward_hook(activation_hook)
 
-    # todo:
-    # efficienter maken door enkel tensor bewerkingen uit te voeren
-    # Zorgen dat eender welk neuraal netwerk werkt!
     def register_backward_lin_hook(self):
         def backward_hook(module, grad_input, grad_output):
             # maak een lege tensor waarbij de grote overeenkomt met het aantal neuronen van de lager gelegen layer.
             layer_relevance = torch.zeros(1, module.in_features)
             if self.current_layer > 1:
                 for j in range(module.in_features):
-                    cj = 0
-                    for k in range(module.out_features):
-                        zk = (self.output_activation_values[self.current_layer - 2] * self.function(module.weight[k])).sum().item() + sys.float_info.epsilon  # self.currentlayer-2 is de layer die lager gelegen is dan de huidige
-                        sk = self.relevance[len(self.relevance) - 1][0][k].item() / zk  # de relevance van de huidige k layer
-                        cj += self.function(module.weight[k][j]).item() * sk
-                    layer_relevance[0][j] = self.output_activation_values[self.current_layer - 2][0][j].item() * cj
+                    #calculate the sum for a specific k
+                    z = torch.add(torch.mul(self.output_activation_values[self.current_layer - 2], self.function(module.weight)).sum(dim=1), sys.float_info.epsilon)
+                    s = torch.div(self.relevance[len(self.relevance) - 1][0], z)
+                    c = torch.mul(s, self.function(module.weight[:, j])).sum()
+
+                    layer_relevance[0][j] = torch.mul(self.output_activation_values[self.current_layer - 2][0][j].item(), c)
 
             else:  # We moeten nu de connectie maken met de afbeelding.
                 for j in range(module.in_features):
-                    cj = 0
-                    for k in range(module.out_features):
-                        zk = (self._input * module.weight[k] - 0 * nn.functional.relu(module.weight[k]) + 1 * nn.functional.relu(-module.weight[k])).sum().item()  # self.currentlayer-2 is de layer die lager gelegen is dan de huidige
-                        sk = self.relevance[len(self.relevance) - 1][0][k].item() / zk  # de relevance van de huidige k layer
-                        cj += (self._input[0][j].item() * module.weight[k][j].item() - 0 * nn.functional.relu(module.weight[k][j]).item() + 1 * nn.functional.relu(-module.weight[k][j]).item()) * sk
-                    layer_relevance[0][j] = cj
+                    # self.currentlayer-2 is de layer die lager gelegen is dan de huidige
+                    z = (torch.mul(self._input, module.weight) - torch.mul(torch.clamp(module.weight, min=0), 0) - torch.mul(torch.clamp(module.weight, max=0), 1)).sum(dim=1)
+                    s = torch.div(self.relevance[len(self.relevance) - 1][0], z)
+                    c = torch.mul((torch.mul(self._input[0][j], module.weight[:, j]) - torch.mul(torch.clamp(module.weight[:, j], min=0), 0) - torch.mul(torch.clamp(module.weight[:, j], max=0), 1)), s).sum()
+                    layer_relevance[0][j] = c
             self.relevance.append(layer_relevance)
             self.current_layer -= 1
 
