@@ -31,7 +31,7 @@ class MLP:
         self._input = None
         self.rho = "lin"
 
-    def lrp(self, _input, debug=False, _return=False, rho="lin"):
+    def lrp(self, _input, debug=False, _return=False, rho="lin"):  # todo check if it is really called lin
         # todo veralgemenen zodat verschillende inputs gegeven kunnen worden en verschillende netwerken
         if isinstance(_input, Image.Image) or len(list(_input.view(-1))) != self.lin_layers[0][1].in_features:
             self._input = mf.apply_transforms(_input, size=int(math.sqrt(self.lin_layers[0][1].in_features)))
@@ -83,7 +83,7 @@ class MLP:
 
         # Get the number of Linear layers
         amount_of_linear_layers = 0  # make sure that this is 0.
-        for name, layer in self.lin_layers:
+        for _ in self.lin_layers:
             amount_of_linear_layers += 1
         self.current_layer = amount_of_linear_layers
 
@@ -142,9 +142,9 @@ class MLP:
 
     def function(self, _input):
         return_value = None
-        if self.rho is "lin":
+        if self.rho is "lin" or self.rho is 'lin':
             return_value = _input  #standard asume lin to be used
-        elif self.rho is "relu":
+        elif self.rho is "relu" or self.rho is 'relu':
             return_value = nn.functional.relu(_input)
         return return_value
 
