@@ -3,6 +3,58 @@ import torch.nn as nn
 import torch.optim as optim
 import ModelFunctions as mf
 
+def train_conv_model(model, train_loader):
+    num_epochs = 5
+    num_classes = 10
+    batch_size = 100
+    learning_rate = 0.001
+    # Loss and optimizer
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    # Train the model
+    total_step = len(train_loader)
+    loss_list = []
+    acc_list = []
+    for epoch in range(num_epochs):
+        for i, (images, labels) in enumerate(train_loader):
+            # Run the forward pass
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            loss_list.append(loss.item())
+
+            # Backprop and perform Adam optimisation
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            # Track the accuracy
+            total = labels.size(0)
+            _, predicted = torch.max(outputs.data, 1)
+            correct = (predicted == labels).sum().item()
+            acc_list.append(correct / total)
+
+            if (i + 1) % 100 == 0:
+                print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Accuracy: {:.2f}%'
+                      .format(epoch + 1, num_epochs, i + 1, total_step, loss.item(),
+                              (correct / total) * 100))
+
+
+def test_conv_model(model, test_loader):
+    # Test the model
+    model.eval()
+    with torch.no_grad():
+        correct = 0
+        total = 0
+        for images, labels in test_loader:
+            outputs = model(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+        print('Test Accuracy of the model on the 10000 test images: {} %'.format((correct / total) * 100))
+
+    # Save the model and plot
+    torch.save(model.state_dict(), 'conv_net_model.pt')
 
 def trainModel(model, train_loader):
     loss_function = nn.NLLLoss()  # negative log likelihood loss

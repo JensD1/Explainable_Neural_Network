@@ -13,9 +13,8 @@ class LRP:
 
     def __init__(self):
         self.model = None
-        self.output_activation_values = []
+        self.input_activation_values = []
         self.rho = "lin"
-        self._input = None
         self.current_layer = None
         self.relevance = None
 
@@ -27,9 +26,6 @@ class LRP:
         self.model.eval()
         self.register_activation_hook()
         last_layer = mf.get_last_layer(self.model)
-        # we need to make sure that all activations are registered, the last layer needs to be registered too, but isn't always a softmax or something alike.
-        if not isinstance(last_layer, nn.Softmax) and not isinstance(last_layer, nn.LogSoftmax):  # if there is one of these layers in the end, the current_layer will be wrong.
-            self.register_activation_hook_last_layer(last_layer)
         lin_layers = mf.get_all_lin_layers(self.model)
         if model_type == "Convolutional":
             conv_layers = mf.get_all_conv_layers(self.model)
@@ -40,11 +36,11 @@ class LRP:
         # todo apply transfors van flashtorch indien convolutional
         if model_type == "MLP":
             if isinstance(_input, Image.Image) or len(list(_input.view(-1))) != lin_layers[0][1].in_features:
-                self._input = mf.apply_transforms(_input, size=int(math.sqrt(lin_layers[0][1].in_features)))
+                _input = mf.apply_transforms(_input, size=int(math.sqrt(lin_layers[0][1].in_features)))
             else:
-                self._input = _input.view(-1, lin_layers[0][1].in_features)
+                _input = _input.view(-1, lin_layers[0][1].in_features)
         elif model_type == "Convolutional":
-            self._input = apply_transforms(_input)
+            _input = apply_transforms(_input)
         else:
             print("Not a valid model_type.")
 
@@ -52,18 +48,18 @@ class LRP:
             print("\n-------------------------------------------------------------------------------------------------")
             print("Input")
             print("-------------------------------------------------------------------------------------------------\n")
-            print(self._input.dtype)
-            print(self._input.size())
+            print(_input.dtype)
+            print(_input.size())
 
-        _input = self._input.detach()
+        _input = _input.detach()
         if model_type == "MLP":
             plt.imshow(_input.view(int(math.sqrt(lin_layers[0][1].in_features)), int(math.sqrt(lin_layers[0][1].in_features))))
         elif model_type == "Convolutional":
             plt.imshow(format_for_plotting(_input))
         plt.show()
 
-        self.output_activation_values.clear()
-        output = self.model(self._input)
+        self.input_activation_values.clear()
+        output = self.model(_input)
         layers = []
         for _, module in self.model.named_modules():
             layers.append(module)
@@ -102,13 +98,13 @@ class LRP:
                     print(layer)
 
             print("\n-------------------------------------------------------------------------------------------------")
-            print("The activation values of each layer")
+            print("The input values of each layer (output activations of previous layer)")
             print("-------------------------------------------------------------------------------------------------\n")
             i = 1
-            for layer in self.output_activation_values:
+            for layer in self.input_activation_values:
                 print("Activation values of layer %d" % i)
                 print(layer.size())
-                print(layer)
+                # print(layer)
                 print()  # empty line
                 i += 1
 
@@ -118,7 +114,7 @@ class LRP:
             print("-------------------------------------------------------------------------------------------------\n")
             print("The current layer is: %d\n" % self.current_layer)
 
-        self.relevance = torch.zeros(self.output_activation_values[len(self.output_activation_values) - 1].size())
+        self.relevance = torch.zeros(output.size())
         maximum = output.topk(1, dim=1)
         self.relevance[0][maximum[1].item()] = maximum[0].item()
 
@@ -168,53 +164,38 @@ class LRP:
     #
     def register_activation_hook(self):
         def activation_hook(module, input_, output):
-            self.output_activation_values.append(output)
+            self.input_activation_values.append(input_[0]) # input[0] is a tuple but we want the tensor within.
             self.current_layer += 1
 
         for _, layer in self.model.named_modules():
-            if isinstance(layer, nn.ReLU) or isinstance(layer, nn.Softmax) or isinstance(layer, nn.LogSoftmax) or \
-                    isinstance(layer, nn.AvgPool1d) or isinstance(layer, nn.AvgPool2d) or \
-                    isinstance(layer, nn.AvgPool3d) or isinstance(layer, nn.MaxPool1d) or \
-                    isinstance(layer, nn.MaxPool2d) or isinstance(layer, nn.MaxPool3d) or \
-                    isinstance(layer, nn.AdaptiveAvgPool2d) or isinstance(layer, nn.AdaptiveAvgPool1d) or \
-                    isinstance(layer, nn.AdaptiveAvgPool3d):
+            if isinstance(layer, nn.Linear) or \
+                    isinstance(layer, nn.Conv2d) or \
+                    isinstance(layer, nn.Conv1d) or \
+                    isinstance(layer, nn.Conv3d):  # todo zet hier de maxpools bij
                 layer.register_forward_hook(activation_hook)
-
-    def register_activation_hook_last_layer(self, layer):
-        def activation_hook(module, input_, output):
-            self.output_activation_values.append(output)
-            self.current_layer += 1
-        layer.register_forward_hook(activation_hook)
 
     def relevance_layer_calculation(self, module):
         if isinstance(module, nn.Linear):
-            print("module is linear!")
-            # maak een lege tensor waarbij de grote overeenkomt met het aantal neuronen van de lager gelegen layer.
-            print(self.current_layer)
-            print(module)
-            print(self.output_activation_values[self.current_layer - 2].size())
-            print(self.function(module.weight).size())
-
             layer_relevance = torch.zeros(1, module.in_features)
             if self.current_layer > 1:
                 # calculate the sum for a specific k
                 z = torch.add(
-                    torch.mul(self.output_activation_values[self.current_layer - 2], self.function(module.weight)).sum(
+                    torch.mul(self.input_activation_values[self.current_layer - 1], self.function(module.weight)).sum(
                         dim=1), sys.float_info.epsilon)
                 s = torch.div(self.relevance[0], z)
                 for j in range(module.in_features):
                     c = torch.mul(s, self.function(module.weight[:, j])).sum()
                     layer_relevance[0][j] = torch.mul(
-                        self.output_activation_values[self.current_layer - 2][0][j].item(), c)
+                        self.input_activation_values[self.current_layer - 1][0][j].item(), c)
 
             else:  # We moeten nu de connectie maken met de afbeelding.
-                z = (torch.mul(self._input, module.weight) - torch.mul(torch.clamp(module.weight, min=0),
+                z = (torch.mul(self.input_activation_values[self.current_layer - 1], module.weight) - torch.mul(torch.clamp(module.weight, min=0),
                                                                        0) - torch.mul(torch.clamp(module.weight, max=0),
                                                                                       1)).sum(dim=1)
                 s = torch.div(self.relevance[0], z)
                 for j in range(module.in_features):
                     # self.currentlayer-2 is de layer die lager gelegen is dan de huidige
-                    c = torch.mul((torch.mul(self._input[0][j], module.weight[:, j]) - torch.mul(
+                    c = torch.mul((torch.mul(self.input_activation_values[self.current_layer - 1][0][j], module.weight[:, j]) - torch.mul(
                         torch.clamp(module.weight[:, j], min=0), 0) - torch.mul(torch.clamp(module.weight[:, j], max=0),
                                                                                 1)), s).sum()
                     layer_relevance[0][j] = c
@@ -222,69 +203,35 @@ class LRP:
             self.current_layer -= 1
 
         elif isinstance(module, nn.Conv2d) or isinstance(module, nn.Conv1d) or isinstance(module, nn.Conv3d):
-            # maak een lege tensor waarbij de grote overeenkomt met het aantal neuronen van de lager gelegen layer.
-            print(self.current_layer)
-            print(module)
             layer_relevance = torch.zeros(1, module.in_features)
             if self.current_layer > 1:
                 # calculate the sum for a specific k
                 z = torch.add(
-                    torch.mul(self.output_activation_values[self.current_layer - 2], self.function(module.weight)).sum(
+                    torch.mul(self.input_activation_values[self.current_layer - 1], self.function(module.weight)).sum(
                         dim=1), sys.float_info.epsilon)
-                s = torch.div(self.relevance[len(self.relevance) - 1][0], z)
+                s = torch.div(self.relevance[0], z)
                 for j in range(module.in_features):
                     c = torch.mul(s, self.function(module.weight[:, j])).sum()
-
                     layer_relevance[0][j] = torch.mul(
-                        self.output_activation_values[self.current_layer - 2][0][j].item(), c)
+                        self.input_activation_values[self.current_layer - 1][0][j].item(), c)
 
             else:  # We moeten nu de connectie maken met de afbeelding.
-                # self.currentlayer-2 is de layer die lager gelegen is dan de huidige
-                z = (torch.mul(self._input, module.weight) - torch.mul(torch.clamp(module.weight, min=0),
+                z = (torch.mul(self.input_activation_values[self.current_layer - 1], module.weight) - torch.mul(torch.clamp(module.weight, min=0),
                                                                        0) - torch.mul(torch.clamp(module.weight, max=0),
                                                                                       1)).sum(dim=1)
-                s = torch.div(self.relevance[len(self.relevance) - 1][0], z)
+                s = torch.div(self.relevance[0], z)
                 for j in range(module.in_features):
-                    c = torch.mul((torch.mul(self._input[0][j], module.weight[:, j]) - torch.mul(
+                    # self.currentlayer-2 is de layer die lager gelegen is dan de huidige
+                    c = torch.mul((torch.mul(self.input_activation_values[self.current_layer - 1][0][j],
+                                             module.weight[:, j]) - torch.mul(
                         torch.clamp(module.weight[:, j], min=0), 0) - torch.mul(torch.clamp(module.weight[:, j], max=0),
                                                                                 1)), s).sum()
                     layer_relevance[0][j] = c
             self.relevance = layer_relevance
             self.current_layer -= 1
-
         elif isinstance(module, nn.AvgPool1d) or isinstance(module, nn.AvgPool2d) or \
                     isinstance(module, nn.AvgPool3d) or isinstance(module, nn.MaxPool1d) or \
                     isinstance(module, nn.MaxPool2d) or isinstance(module, nn.MaxPool3d) or \
                     isinstance(module, nn.AdaptiveAvgPool2d) or isinstance(module, nn.AdaptiveAvgPool1d) or \
                     isinstance(module, nn.AdaptiveAvgPool3d):
-            # maak een lege tensor waarbij de grote overeenkomt met het aantal neuronen van de lager gelegen layer.
-
-            print(self.current_layer)
-            print(module)
-
-            layer_relevance = torch.zeros(1, module.in_features)
-            if self.current_layer > 1:
-                # calculate the sum for a specific k
-                z = torch.add(
-                    torch.mul(self.output_activation_values[self.current_layer - 2], self.function(module.weight)).sum(
-                        dim=1), sys.float_info.epsilon)
-                s = torch.div(self.relevance[len(self.relevance) - 1][0], z)
-                for j in range(module.in_features):
-                    c = torch.mul(s, self.function(module.weight[:, j])).sum()
-
-                    layer_relevance[0][j] = torch.mul(
-                        self.output_activation_values[self.current_layer - 2][0][j].item(), c)
-
-            else:  # We moeten nu de connectie maken met de afbeelding.
-                # self.currentlayer-2 is de layer die lager gelegen is dan de huidige
-                z = (torch.mul(self._input, module.weight) - torch.mul(torch.clamp(module.weight, min=0),
-                                                                       0) - torch.mul(torch.clamp(module.weight, max=0),
-                                                                                      1)).sum(dim=1)
-                s = torch.div(self.relevance[len(self.relevance) - 1][0], z)
-                for j in range(module.in_features):
-                    c = torch.mul((torch.mul(self._input[0][j], module.weight[:, j]) - torch.mul(
-                        torch.clamp(module.weight[:, j], min=0), 0) - torch.mul(torch.clamp(module.weight[:, j], max=0),
-                                                                                1)), s).sum()
-                    layer_relevance[0][j] = c
-            self.relevance = layer_relevance
-            self.current_layer -= 1
+            print("module is Pool!")

@@ -16,6 +16,7 @@ import MLP as multilayerperceptron
 import Convolutional as convolutional
 import ModelFunctions as mf
 import trainer as trainer
+import TestNet
 
 import matplotlib.pyplot as plt
 
@@ -33,10 +34,10 @@ test_loader = DataLoader(testset, batch_size=64, shuffle=True)
 # -------------------------------------------------Menu-Options---------------------------------------------------------
 #
 running = True
-loaded_model = net.NeuralNet(28 * 28, [128, 64], 10)  #todo remove
-loaded_model.load_state_dict(torch.load("mnist_model.pt")) #todo remove
-model = loaded_model = loaded_model  # todo change to None
-modelType = "Linear"  # todo change to None
+loaded_model = net.NeuralNet(28 * 28, [128, 64], 10)
+loaded_model.load_state_dict(torch.load("mnist_model.pt"))  # TestNet.TestNet()
+model = loaded_model
+modelType = "Linear"
 convManager = convolutional.Convolutional()
 mlpManager = multilayerperceptron.MLP()
 
@@ -46,7 +47,7 @@ availableModels = [  # when changing something here the loadModel function shoul
     "vgg",
     "mlp",
     "mlpSeq",
-    "mlp29"
+    "mlp29",
 ]
 
 
