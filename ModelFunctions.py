@@ -24,6 +24,21 @@ def get_model_type(model):
 
     return ModelTypeClass.model_type
 
+def get_last_layer(model):
+    class Layer:
+        last_layer = None
+
+    def iterative_layer_checking(layer):
+        for module in layer.named_children():
+            if module is not None:
+                iterative_layer_checking(module[1])
+                Layer.last_layer = module[1]
+
+    for module in model.named_children():
+        Layer.last_layer = module[1]
+        iterative_layer_checking(module[1])
+
+    return Layer.last_layer
 
 def get_last_conv_layer(model):
     class ConvLayer:
@@ -85,6 +100,28 @@ def get_all_lin_layers(model):
 
     return LinLayers.layers
 
+
+def get_all_pool_layers(model):
+    class PoolLayers:
+        layers = []
+
+    def iterative_layer_checking(layer):
+        for module in layer.named_children():
+            if module is not None:
+                iterative_layer_checking(module[1])
+                if isinstance(module[1], nn.AvgPool1d) or isinstance(module[1], nn.AvgPool2d) or \
+                        isinstance(module[1], nn.AvgPool3d) or isinstance(module[1], nn.MaxPool1d) or \
+                        isinstance(module[1], nn.MaxPool2d) or isinstance(module[1], nn.MaxPool3d):
+                    PoolLayers.layers.append(module[1])
+
+    for module in model.named_children():
+        if isinstance(module[1], nn.AvgPool1d) or isinstance(module[1], nn.AvgPool2d) or \
+                isinstance(module[1], nn.AvgPool3d) or isinstance(module[1], nn.MaxPool1d) or\
+                isinstance(module[1], nn.MaxPool2d) or isinstance(module[1], nn.MaxPool3d):
+            PoolLayers.layers.append(module[1])
+        iterative_layer_checking(module[1])
+
+    return PoolLayers.layers
 
 def apply_transforms(image, size=28):
     if not isinstance(image, Image.Image):

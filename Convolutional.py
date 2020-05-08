@@ -7,6 +7,7 @@ from flashtorch.activmax import GradientAscent
 import copy
 import torch.nn as nn
 import ModelFunctions as mf
+import LRP as lrp
 
 import matplotlib.pyplot as plt
 
@@ -102,3 +103,7 @@ class Convolutional:
                                           title=title, return_output=True)
         if return_output:
             return return_value
+
+    def layerwise_relevance_propagation(self, _input, debug=False, _return=False, rho="lin"):
+        _layerwise_relevance_propagation = lrp.LRP()
+        _layerwise_relevance_propagation.lrp(self.model, _input, debug=debug, _return=_return, rho=rho, model_type="Convolutional")
