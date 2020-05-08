@@ -33,8 +33,10 @@ test_loader = DataLoader(testset, batch_size=64, shuffle=True)
 # -------------------------------------------------Menu-Options---------------------------------------------------------
 #
 running = True
-model = None
-modelType = None
+loaded_model = net.NeuralNet(28 * 28, [128, 64], 10)  #todo remove
+loaded_model.load_state_dict(torch.load("mnist_model.pt")) #todo remove
+model = loaded_model = loaded_model  # todo change to None
+modelType = "Linear"  # todo change to None
 convManager = convolutional.Convolutional()
 mlpManager = multilayerperceptron.MLP()
 
