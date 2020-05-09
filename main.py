@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 
 import MLP as multilayerperceptron
-import Convolutional as convolutional
+import Convolutional
 import ModelFunctions as mf
 
 import matplotlib.pyplot as plt
@@ -27,7 +27,7 @@ test_loader = DataLoader(testset, batch_size=64, shuffle=True)
 running = True
 model = None
 modelType = None
-convManager = convolutional.Convolutional()
+convManager = Convolutional.Convolutional()
 mlpManager = multilayerperceptron.MLP()
 
 availableModels = [  # when changing something here the loadModel function should be adapted as well.
@@ -492,8 +492,8 @@ while running: # todo make sure that return values are used. check user input an
         for tempModel in availableModels:
             print(tempModel)
     elif _input == "!addModel":
-        file_name = input("Give the name of the python file (don't put .py behind the file!).\n")
-        class_name = input("Give the name of the class.\n")
+        file_name = input("Give the name of the python file (don't put .py behind the file!).\nIn case this is in another folder, use '.'\n")
+        class_name = input("Give the name of the class.\nIn case this is in another folder, use '/'")
         try:
             exec('import %s' % file_name)
             availableModels.append("" + file_name + "." + class_name)

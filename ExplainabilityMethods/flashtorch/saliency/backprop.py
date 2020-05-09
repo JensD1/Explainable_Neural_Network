@@ -6,9 +6,9 @@ import torch
 import torch.nn as nn
 
 
-from flashtorch.utils import (denormalize,
-                              format_for_plotting,
-                              standardize_and_clip)
+from ExplainabilityMethods.flashtorch.utils import (denormalize,
+                                                    format_for_plotting,
+                                                    standardize_and_clip)
 
 class Backprop:
     """Provides an interface to perform backpropagation.

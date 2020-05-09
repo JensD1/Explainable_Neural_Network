@@ -1,16 +1,13 @@
-import sys
-
 import numpy as np
 import matplotlib.pyplot as plt
 
 import torch
 import torch.nn as nn
-import torch.optim as optim
 
-from flashtorch.utils import (apply_transforms,
-                              format_for_plotting,
-                              load_image,
-                              standardize_and_clip)
+from ExplainabilityMethods.flashtorch.utils import (apply_transforms,
+                                                    format_for_plotting,
+                                                    load_image,
+                                                    standardize_and_clip)
 
 
 class GradientAscent:

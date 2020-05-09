@@ -6,7 +6,7 @@ import sys
 import ModelFunctions as mf
 import math
 from PIL import Image
-from flashtorch.utils import apply_transforms, format_for_plotting
+from ExplainabilityMethods.flashtorch.utils import apply_transforms, format_for_plotting
 import numpy
 
 class LRP:
