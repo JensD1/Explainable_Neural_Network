@@ -2,7 +2,7 @@ import torch.nn as nn
 
 
 class NeuralNet(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
+    def __init__(self, input_size=28 * 28, hidden_size=(128, 64), output_size=10):
         super(NeuralNet, self).__init__()
 
         # Inputs to hidden layer linear transformation

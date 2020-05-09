@@ -1,15 +1,16 @@
+import sys
 import torch
+import logging
 
 import torchvision.models as models
 from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 
-import NeuralNet as net
-import NeuralNetSeq as netSeq
+# import NeuralNet as net
+# import NeuralNetSeq as netSeq
 import MLP as multilayerperceptron
 import Convolutional as convolutional
 import ModelFunctions as mf
-import TestNet
 
 import matplotlib.pyplot as plt
 
@@ -27,40 +28,49 @@ test_loader = DataLoader(testset, batch_size=64, shuffle=True)
 # -------------------------------------------------Menu-Options---------------------------------------------------------
 #
 running = True
-model = TestNet.TestNet()
-modelType = "Convolutional"
+model = None
+modelType = None
 convManager = convolutional.Convolutional()
 mlpManager = multilayerperceptron.MLP()
 
 availableModels = [  # when changing something here the loadModel function should be adapted as well.
     "alexNet",
     "denseNet",
-    "vgg",
-    "mlp",
-    "mlpSeq",
-    "mlp29",
+    "vgg"#,
+    # "mlp",
+    # "mlpSeq",
+    # "mlp29"
 ]
 
 
 def load_model(_input):
-    if _input == "alexNet":
-        loaded_model = models.alexnet(pretrained=True)
-    elif _input == "denseNet":
-        loaded_model = models.densenet201(pretrained=True)
-    elif _input == "vgg":
-        loaded_model = models.vgg16(pretrained=True)
-    elif _input == "mlp":
-        loaded_model = net.NeuralNet(28 * 28, [128, 64], 10)
-        loaded_model.load_state_dict(torch.load("mnist_model.pt"))
-    elif _input == "mlpSeq":
-        loaded_model = netSeq.NeuralNetSeq()
-        loaded_model.load_state_dict(torch.load("mnist_model_seq.pt"))
-    elif _input == "mlp29":
-        loaded_model = net.NeuralNet(29 * 29, [128, 64], 10)
-        loaded_model.load_state_dict(torch.load("mnist_model_29x29.pt"))
-    else:
-        loaded_model = None
-    return loaded_model
+    global model
+    model = None
+    if _input in availableModels:
+        if _input == "alexNet":
+            model = models.alexnet(pretrained=True)
+        elif _input == "denseNet":
+            model = models.densenet201(pretrained=True)
+        elif _input == "vgg":
+            model = models.vgg16(pretrained=True)
+        # elif _input == "mlp":
+        #     loaded_model = net.NeuralNet(28 * 28, [128, 64], 10)
+        #     loaded_model.load_state_dict(torch.load("mnist_model.pt"))
+        # elif _input == "mlpSeq":
+        #     loaded_model = netSeq.NeuralNetSeq()
+        #     loaded_model.load_state_dict(torch.load("mnist_model_seq.pt"))
+        # elif _input == "mlp29":
+        #     loaded_model = net.NeuralNet(29 * 29, [128, 64], 10)
+        #     loaded_model.load_state_dict(torch.load("mnist_model_29x29.pt"))
+        else:
+            try:
+                exec('model = %s()' % _input, globals())
+                state_dict_file_name = input("Give the state dict file name. (None if there is none).\n")
+                if state_dict_file_name not in ["None", "none", "no", "No", "n", "N"]:
+                    model.load_state_dict(torch.load(state_dict_file_name))
+            except Exception as e:
+                logging.exception(e)
+
 
 
 saliency_options = {
@@ -484,6 +494,14 @@ while running: # todo make sure that return values are used. check user input an
     elif _input == "!listModels":
         for tempModel in availableModels:
             print(tempModel)
+    elif _input == "!addModel":
+        file_name = input("Give the name of the python file (don't put .py behind the file!).\n")
+        class_name = input("Give the name of the class.\n")
+        try:
+            exec('import %s' % file_name)
+            availableModels.append("" + file_name + "." + class_name)
+        except Exception as e:
+            logging.exception(e)
     elif _input == "!selectModel":
         _exit = False
         while not _exit:
@@ -499,9 +517,9 @@ while running: # todo make sure that return values are used. check user input an
             elif _input == "!current":
                 print(model)
                 print()
-            elif _input in availableModels:
+            elif _input in availableModels:  # todo this is checked twice ==> remove one of both
                 _exit = True
-                model = load_model(_input)
+                load_model(_input)
                 if model is None:
                     print("This is not an available model. You can print all available models with: !listModels.")
                     modelType = None
