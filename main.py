@@ -1,11 +1,5 @@
-import copy
-
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
 
-import torchvision
 import torchvision.models as models
 from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
@@ -15,7 +9,6 @@ import NeuralNetSeq as netSeq
 import MLP as multilayerperceptron
 import Convolutional as convolutional
 import ModelFunctions as mf
-import trainer as trainer
 import TestNet
 
 import matplotlib.pyplot as plt
@@ -34,10 +27,8 @@ test_loader = DataLoader(testset, batch_size=64, shuffle=True)
 # -------------------------------------------------Menu-Options---------------------------------------------------------
 #
 running = True
-loaded_model = net.NeuralNet(28 * 28, [128, 64], 10)
-loaded_model.load_state_dict(torch.load("mnist_model.pt"))  # TestNet.TestNet()
-model = loaded_model
-modelType = "Linear"
+model = TestNet.TestNet()
+modelType = "Convolutional"
 convManager = convolutional.Convolutional()
 mlpManager = multilayerperceptron.MLP()
 
