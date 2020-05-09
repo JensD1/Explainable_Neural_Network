@@ -1,7 +1,4 @@
-from flashtorch.utils import apply_transforms, load_image
-from flashtorch.utils import (denormalize,
-                              format_for_plotting,
-                              standardize_and_clip)
+from flashtorch.utils import apply_transforms
 from flashtorch.saliency import Backprop
 from flashtorch.activmax import GradientAscent
 import copy

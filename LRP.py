@@ -5,7 +5,6 @@ import copy
 import sys
 import ModelFunctions as mf
 import math
-import flashtorch
 from PIL import Image
 from flashtorch.utils import apply_transforms, format_for_plotting
 import numpy

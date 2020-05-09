@@ -1,4 +1,3 @@
-import sys
 import torch
 import logging
 
@@ -6,8 +5,6 @@ import torchvision.models as models
 from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 
-# import NeuralNet as net
-# import NeuralNetSeq as netSeq
 import MLP as multilayerperceptron
 import Convolutional as convolutional
 import ModelFunctions as mf
