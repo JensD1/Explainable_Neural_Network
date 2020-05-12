@@ -24,19 +24,17 @@ test_loader = DataLoader(testset, batch_size=64, shuffle=True)
 #
 # -------------------------------------------------Menu-Options---------------------------------------------------------
 #
+import models.TestNet
 running = True
-model = None
-modelType = None
+model = models.TestNet.TestNet()
+modelType = "Convolutional"
 convManager = Convolutional.Convolutional()
 mlpManager = multilayerperceptron.MLP()
 
 availableModels = [  # when changing something here the loadModel function should be adapted as well.
     "alexNet",
     "denseNet",
-    "vgg"#,
-    # "mlp",
-    # "mlpSeq",
-    # "mlp29"
+    "vgg"
 ]
 
 
@@ -50,19 +48,10 @@ def load_model(_input):
             model = models.densenet201(pretrained=True)
         elif _input == "vgg":
             model = models.vgg16(pretrained=True)
-        # elif _input == "mlp":
-        #     loaded_model = net.NeuralNet(28 * 28, [128, 64], 10)
-        #     loaded_model.load_state_dict(torch.load("mnist_model.pt"))
-        # elif _input == "mlpSeq":
-        #     loaded_model = netSeq.NeuralNetSeq()
-        #     loaded_model.load_state_dict(torch.load("mnist_model_seq.pt"))
-        # elif _input == "mlp29":
-        #     loaded_model = net.NeuralNet(29 * 29, [128, 64], 10)
-        #     loaded_model.load_state_dict(torch.load("mnist_model_29x29.pt"))
         else:
             try:
                 exec('model = %s()' % _input, globals())
-                state_dict_file_name = input("Give the state dict file name. (None if there is none).\n")
+                state_dict_file_name = input("Give the state dict file name. (None if there is none).\nIn case this is in another folder, use '/'\n")
                 if state_dict_file_name not in ["None", "none", "no", "No", "n", "N"]:
                     model.load_state_dict(torch.load(state_dict_file_name))
             except Exception as e:
@@ -493,7 +482,7 @@ while running: # todo make sure that return values are used. check user input an
             print(tempModel)
     elif _input == "!addModel":
         file_name = input("Give the name of the python file (don't put .py behind the file!).\nIn case this is in another folder, use '.'\n")
-        class_name = input("Give the name of the class.\nIn case this is in another folder, use '/'")
+        class_name = input("Give the name of the class.\n")
         try:
             exec('import %s' % file_name)
             availableModels.append("" + file_name + "." + class_name)

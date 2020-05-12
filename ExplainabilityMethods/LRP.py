@@ -8,6 +8,7 @@ import math
 from PIL import Image
 from ExplainabilityMethods.flashtorch.utils import apply_transforms, format_for_plotting
 import numpy
+import operator
 
 class LRP:
 
@@ -21,7 +22,7 @@ class LRP:
     #
     # --------------------------------------------------Methods---------------------------------------------------------
     #
-    def lrp(self, model, _input, debug=False, _return=False, rho="lin", model_type="MLP"):  # todo check if it is really called lin
+    def lrp(self, model, _input, debug=False, _return=False, rho="lin", model_type="MLP", size=224):  # todo check if it is really called lin
         self.model = copy.deepcopy(model)  # make sure that you won't adjust the original model by registering hooks.
         self.model.eval()
         self.register_activation_hook()
@@ -40,7 +41,7 @@ class LRP:
             else:
                 _input = _input.view(-1, lin_layers[0][1].in_features)
         elif model_type == "Convolutional":
-            _input = apply_transforms(_input)
+            _input = apply_transforms(_input, size)
         else:
             print("Not a valid model_type.")
 
@@ -185,12 +186,9 @@ class LRP:
             self.current_layer += 1
 
         for _, layer in self.model.named_modules():
-            if isinstance(layer, nn.Linear) or isinstance(layer, nn.Conv2d) or isinstance(layer, nn.Conv1d) or \
-                    isinstance(layer, nn.Conv3d) or isinstance(layer, nn.AvgPool1d) or \
-                    isinstance(layer, nn.AvgPool2d) or isinstance(layer, nn.AvgPool3d) or \
-                    isinstance(layer, nn.MaxPool1d) or isinstance(layer, nn.MaxPool2d) or \
-                    isinstance(layer, nn.MaxPool3d) or isinstance(layer, nn.AdaptiveAvgPool2d) or \
-                    isinstance(layer, nn.AdaptiveAvgPool1d) or isinstance(layer, nn.AdaptiveAvgPool3d):
+            if isinstance(layer, nn.Linear) or isinstance(layer, nn.Conv2d) or \
+                    isinstance(layer, nn.Conv1d) or isinstance(layer, nn.Conv3d) or \
+                    isinstance(layer, nn.MaxPool2d) or isinstance(layer, nn.AdaptiveMaxPool2d):
                 layer.register_forward_hook(activation_hook)
 
     def relevance_layer_calculation(self, module):
@@ -263,24 +261,33 @@ class LRP:
                 z -= newlayer(module, lambda p: p.clamp(min=0)).forward(lb)  # step 1 (b)
                 z -= newlayer(module, lambda p: p.clamp(max=0)).forward(hb)  # step 1 (c)
                 s = (self.relevance / z).data  # step 2
-                (z * s).sum().backward();
+                (z * s).sum().backward()
                 c, cp, cm = self.input_activation_values[self.current_layer - 1].grad, lb.grad, hb.grad  # step 3
                 self.relevance = (self.input_activation_values[self.current_layer - 1] * c + lb * cp + hb * cm).data  # step 4
             self.current_layer -= 1
             print(self.relevance.sum().item())
 
-        elif isinstance(module, nn.AvgPool1d) or isinstance(module, nn.AvgPool2d) or \
-                    isinstance(module, nn.AvgPool3d) or isinstance(module, nn.MaxPool1d) or \
-                    isinstance(module, nn.MaxPool2d) or isinstance(module, nn.MaxPool3d) or \
-                    isinstance(module, nn.AdaptiveAvgPool2d) or isinstance(module, nn.AdaptiveAvgPool1d) or \
-                    isinstance(module, nn.AdaptiveAvgPool3d):
+        elif isinstance(module, nn.MaxPool2d) or isinstance(module, nn.AdaptiveMaxPool2d):
             print(self.current_layer)
             print("module is Pool!")
+            print(module)
             module.return_indices = True
             module._forward_hooks.clear()
             output, indices = module.forward(self.input_activation_values[self.current_layer - 1])
-            unpool = nn.MaxUnpool2d(module.kernel_size, module.stride)
-            self.relevance = unpool(self.relevance.view(output.size()), indices)
+            if isinstance(module, nn.MaxPool2d):
+                stride = module.stride
+                kernel_size = module.kernel_size
+            else:
+                input_size = tuple((self.input_activation_values[self.current_layer - 1].size()[2], self.input_activation_values[self.current_layer - 1].size()[3]))
+                stride = tuple(map(operator.floordiv, input_size, module.output_size))  # input_size // output_size
+                temp = tuple(map(operator.mul, tuple(var - 1 for var in module.output_size), stride))
+                kernel_size = tuple(map(operator.sub, input_size, temp))
+            unpool = nn.MaxUnpool2d(kernel_size, stride)
+            print(output.size())
+            print(self.relevance.view(output.size()).size())
+            print(indices.size())
+            self.relevance = unpool(self.relevance.view(output.size()), indices, output_size=self.input_activation_values[self.current_layer - 1].size())
+            print(self.relevance.size())
             self.current_layer -= 1
             print(self.relevance.sum().item())
 

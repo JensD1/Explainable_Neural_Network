@@ -101,6 +101,6 @@ class Convolutional:
         if return_output:
             return return_value
 
-    def layerwise_relevance_propagation(self, _input, debug=False, _return=False, rho="lin"):
+    def layerwise_relevance_propagation(self, _input, debug=False, _return=False, rho="lin", size=224):
         _layerwise_relevance_propagation = LRP.LRP()
-        _layerwise_relevance_propagation.lrp(self.model, _input, debug=debug, _return=_return, rho=rho, model_type="Convolutional")
+        _layerwise_relevance_propagation.lrp(self.model, _input, debug=debug, _return=_return, rho=rho, model_type="Convolutional", size=size)
