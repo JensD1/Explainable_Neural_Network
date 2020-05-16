@@ -25,7 +25,7 @@ The Convolutional.py file contains the Convolutional class and works about the s
 
 The ModelFunctions.py file will contain a lot of functions that can be used in all classes once imported. 
 
-## ExplainabilityMethods
+### ExplainabilityMethods
 This folder will contain the actual implementations of the explainability methods, that will be called by either the MLP class or Convolutional class.
 
 The LRP file contains the LRP class and will perform Layerwise Relevance Propagation through all layers of the module.
@@ -33,10 +33,10 @@ The LRP file contains the LRP class and will perform Layerwise Relevance Propaga
 The Flashtorch directory is created by Misa Ogura and all info can be found at https://github.com/MisaOgura/flashtorch.
 This will contain the saliency, activation maximisation and deepdream explainability implementations.
 
-## MNIST
+### MNIST
 here you can find the MNIST Handwritten Digit Classification Dataset.
 
-## models
+### models
 Here you can find self created and trained models. These are not state of the art models, but it's purpose is mainly to demonstrate
 that this toolkit works for all kinds of models and that you can compare models to see which model is best. 
 The .pt files contain the state_dict of the models. Here is a list which one belongs to which model:
