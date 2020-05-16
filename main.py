@@ -24,13 +24,14 @@ test_loader = DataLoader(testset, batch_size=64, shuffle=True)
 #
 # -------------------------------------------------Menu-Options---------------------------------------------------------
 #
+# set the basic settings
 running = True
 model = None
 modelType = None
 convManager = Convolutional.Convolutional()
 mlpManager = multilayerperceptron.MLP()
 
-availableModels = [  # when changing something here the loadModel function should be adapted as well.
+availableModels = [  # when changing something here the loadModel function should be adapted as well (see below).
     "alexNet",
     "denseNet",
     "vgg"
@@ -38,6 +39,11 @@ availableModels = [  # when changing something here the loadModel function shoul
 
 
 def load_model(_input):
+    """
+    This will change the current model and load in a new one. In case this is a self added model, it will ask the user
+    to give the path to the state dict file.
+    :param _input: (String) contains the name of the model the user wants to load.
+    """
     global model
     model = None
     if _input in availableModels:
@@ -57,7 +63,7 @@ def load_model(_input):
                 logging.exception(e)
 
 
-
+# Configuring the basic options for saliency, activation maximisation, deepdream and layerwise relevance propagation.
 saliency_options = {
     "Guidance": True,
     "Expected": 0,
@@ -88,11 +94,15 @@ lrp_options = {
 }
 
 #
-# -----------------------------------------------------Sub-Menu---------------------------------------------------------
+# -----------------------------------------------------Sub-Menus--------------------------------------------------------
 #
 
 # LRP
 def lrp_menu():
+    """
+    This submenu gives the user the possibility to adjust certain settings before starting layerwise
+    relevance propagation.
+    """
     _exit = False
     print("You can adjust the settings, see !help for more information.")
     while not _exit:
@@ -218,6 +228,9 @@ def lrp_menu():
 
 #Saliency
 def saliency_menu():
+    """
+    This submenu gives the user the possibility to adjust certain settings before starting saliency.
+    """
     _exit = False
     print("You can adjust the settings, see !help for more information.")
     while not _exit:
@@ -312,6 +325,9 @@ def saliency_menu():
 
 # activmax
 def activmax_menu():
+    """
+    This submenu gives the user the possibility to adjust certain settings before starting activation maximisation.
+    """
     _exit = False
     while not _exit:
         _input = input("Type !start to start activation maximisation\n")
@@ -396,6 +412,9 @@ def activmax_menu():
             print("Not an available command, type !help to see all available commands.")
 
 def deepdream_menu():
+    """
+    This submenu gives the user the possibility to adjust certain settings before starting the deepdream creation.
+    """
     _exit = False
     while not _exit:
         _input = input("Type !start to start creating the deepdream\n")
@@ -452,7 +471,6 @@ def deepdream_menu():
 #
 # -----------------------------------------------------Menu-------------------------------------------------------------
 #
-
 while running: # todo make sure that return values are used. check user input and images
     if model is None:
         print("You should select a model to use first, you can switch to another model later on!")

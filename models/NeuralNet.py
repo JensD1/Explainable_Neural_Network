@@ -2,6 +2,9 @@ import torch.nn as nn
 
 
 class NeuralNet(nn.Module):
+    """
+    A simple MLP network to test certain functionalities. This does not contain any Sequential layers.
+    """
     def __init__(self, input_size=28 * 28, hidden_size=(128, 64), output_size=10):
         super(NeuralNet, self).__init__()
 

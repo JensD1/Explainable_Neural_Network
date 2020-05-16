@@ -5,6 +5,14 @@ import torchvision.transforms as transforms
 
 
 def get_model_type(model):
+    """
+    This function looks at all layers and seeks for nn.Conv1d, nn.Conv2d and nn.Conv3d modules. In case there is a
+    module of this instance, than we have a CNN, otherwise a MLP network. This method is not created to find other model
+    types like f.e. RNN.
+    :param model: A MLP model or a CNN model.
+    :return:    "Linear" if the model has no Conv layers but only Linear (ReLU, SoftMax, ...),
+                otherwise returns "Convolutional"
+    """
     class ModelTypeClass:
         model_type = "Linear"
 
@@ -25,6 +33,11 @@ def get_model_type(model):
     return ModelTypeClass.model_type
 
 def get_last_layer(model):
+    """
+    Get the last layer of a model
+    :param model:  any type of pytorch model.
+    :return: The last layer of this model.
+    """
     class Layer:
         last_layer = None
 
@@ -41,6 +54,11 @@ def get_last_layer(model):
     return Layer.last_layer
 
 def get_last_conv_layer(model):
+    """
+    Get the last convolutional layer of a model.
+    :param model: any kind of pytorch model.
+    :return: The last convolutional layer.
+    """
     class ConvLayer:
         last_layer = None
 
@@ -62,6 +80,11 @@ def get_last_conv_layer(model):
 
 
 def get_all_conv_layers(model):
+    """
+    This method extracts all convolutional layers from a CNN.
+    :param model: A pytorch CNN model.
+    :return: A list of all convolutional layers of the model.
+    """
     class ConvLayers:
         layers = []
 
@@ -83,6 +106,11 @@ def get_all_conv_layers(model):
 
 
 def get_all_lin_layers(model):
+    """
+    This method extracts all Linear layers from a MLP network.
+    :param model: A pytorch MLP network.
+    :return: A list of all linear layers of the model.
+    """
     class LinLayers:
         layers = []
 
@@ -102,6 +130,12 @@ def get_all_lin_layers(model):
 
 
 def get_all_pool_layers(model):
+    """
+        This method extracts all pool layers from a CNN. (at the moment only Avg- and MaxPool are
+        implemented, AdaptingAvg- and AdaptiveMaxPool layers are not).
+        :param model: A pytorch CNN model.
+        :return: A list of all pool layers of the model.
+        """
     class PoolLayers:
         layers = []
 
@@ -124,6 +158,12 @@ def get_all_pool_layers(model):
     return PoolLayers.layers
 
 def apply_transforms(image, size=28):
+    """
+
+    :param image: image (PIL.Image.Image or numpy array) with shape :math:`(1, H, W)` in case of numpy array
+    :param size: the size of the rescaled image (size x size).
+    :return: a tensor of size [1, size x size]
+    """
     if not isinstance(image, Image.Image):
         image = F.to_pil_image(image)
 

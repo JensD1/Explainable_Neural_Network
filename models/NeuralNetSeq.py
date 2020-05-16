@@ -2,6 +2,9 @@ import torch.nn as nn
 
 
 class NeuralNetSeq(nn.Module):
+    """
+    A simple MLP network to test certain functionalities. This contains Sequential layers.
+    """
     def __init__(self):
         super(NeuralNetSeq, self).__init__()
         # layers
