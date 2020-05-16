@@ -1,7 +1,7 @@
 import torch
 import logging
 
-import torchvision.models as models
+import torchvision
 from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 
@@ -24,10 +24,9 @@ test_loader = DataLoader(testset, batch_size=64, shuffle=True)
 #
 # -------------------------------------------------Menu-Options---------------------------------------------------------
 #
-import models.TestNet
 running = True
-model = models.TestNet.TestNet()
-modelType = "Convolutional"
+model = None
+modelType = None
 convManager = Convolutional.Convolutional()
 mlpManager = multilayerperceptron.MLP()
 
@@ -43,11 +42,11 @@ def load_model(_input):
     model = None
     if _input in availableModels:
         if _input == "alexNet":
-            model = models.alexnet(pretrained=True)
+            model = torchvision.models.alexnet(pretrained=True)
         elif _input == "denseNet":
-            model = models.densenet201(pretrained=True)
+            model = torchvision.models.densenet201(pretrained=True)
         elif _input == "vgg":
-            model = models.vgg16(pretrained=True)
+            model = torchvision.models.vgg16(pretrained=True)
         else:
             try:
                 exec('model = %s()' % _input, globals())
@@ -80,10 +79,10 @@ deepdream_options = {
     "use_gpu": True
 }
 lrp_options = {
-    "image_path": "images/number.jpg",
-    "use_MNIST": False,  # todo set to true
+    "image_path": "images/cat.jpg",
+    "use_MNIST": True,
     "rho": "relu",
-    "debug": True,  # todo set to false by default.
+    "debug": False,
     "return_output": False,
     "use_gpu": True  # todo make an option for use_gpu!
 }

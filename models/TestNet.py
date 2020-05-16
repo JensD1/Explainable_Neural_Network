@@ -13,14 +13,19 @@ class TestNet(nn.Module):
             nn.Conv2d(32, 64, kernel_size=5, stride=1, padding=2),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=3, stride=3))
+        self.layer3 = nn.Sequential(
+            nn.Conv2d(64, 128, kernel_size=5, stride=1, padding=2),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=3, stride=3))
         self.adaptiveMaxPool = nn.AdaptiveMaxPool2d((6, 6))
         self.drop_out = nn.Dropout()
-        self.fc1 = nn.Linear(64 * 6 * 6, 15)
-        self.fc2 = nn.Linear(15, 10)
+        self.fc1 = nn.Linear(128 * 6 * 6, 128)
+        self.fc2 = nn.Linear(128, 10)
 
     def forward(self, x):
         out = self.layer1(x)
         out = self.layer2(out)
+        out = self.layer3(out)
         out = self.adaptiveMaxPool(out)
         out = torch.flatten(out, 1)
         out = self.drop_out(out)
