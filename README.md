@@ -17,7 +17,7 @@ Once an explainability method is show and the user types the command "!start", t
 in MLP.py of Convolutional.py (depending on the type of network).
 
 The MLP.py file contains the MLP class and will be able to run all methods from the files in the folder ExplainabilityMethods that are compatible with MLP networks. 
-At this moment, only LRP is available. When a user type a command f.e. "!lrp", this class will call the corresponding method in the LRP.py file,
+At this moment, only LRP and saliency is available. When a user type a command f.e. "!lrp", this class will call the corresponding method in the LRP.py file,
 but with the correct values so it will work for a MLP network.
 
 The Convolutional.py file contains the Convolutional class and works about the same as the MLP class, but with the difference that
@@ -31,7 +31,8 @@ This folder will contain the actual implementations of the explainability method
 The LRP file contains the LRP class and will perform Layerwise Relevance Propagation through all layers of the module.
 
 The Flashtorch directory is created by Misa Ogura and all info can be found at https://github.com/MisaOgura/flashtorch.
-This will contain the saliency, activation maximisation and deepdream explainability implementations.
+This will contain the saliency, activation maximisation and deepdream explainability implementations. If you compare 
+the GitHub code from Misa Ogure and mine, you'll see that I made adjustments to generalise this code.
 
 ### MNIST
 here you can find the MNIST Handwritten Digit Classification Dataset.

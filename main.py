@@ -56,7 +56,8 @@ def load_model(_input):
         else:
             try:
                 exec('model = %s()' % _input, globals())
-                state_dict_file_name = input("Give the state dict file name. (None if there is none).\nIn case this is in another folder, use '/'\n")
+                state_dict_file_name = input(
+                    "Give the state dict file name. (None if there is none).\nIn case this is in another folder, use '/'\n")
                 if state_dict_file_name not in ["None", "none", "no", "No", "n", "N"]:
                     model.load_state_dict(torch.load(state_dict_file_name))
             except Exception as e:
@@ -70,7 +71,8 @@ saliency_options = {
     "use_gpu": False,
     "return_output": False,
     "Alpha": 0.5,
-    "image": Image.open("images/Uil.jpg")
+    "image": Image.open("images/Uil.jpg"),
+    "use_MNIST": True,
 }
 activmax_options = {
     "use_gpu": True,
@@ -92,6 +94,7 @@ lrp_options = {
     "return_output": False,
     "use_gpu": True  # todo make an option for use_gpu!
 }
+
 
 #
 # -----------------------------------------------------Sub-Menus--------------------------------------------------------
@@ -225,8 +228,7 @@ def lrp_menu():
             print("Not an available command, type !help to see all available commands.")
 
 
-
-#Saliency
+# Saliency
 def saliency_menu():
     """
     This submenu gives the user the possibility to adjust certain settings before starting saliency.
@@ -255,6 +257,20 @@ def saliency_menu():
                 print(":\t\t", end="")
                 print(saliency_options.get(option))
             print()
+        elif _input == "!use_MNIST":
+            _input = input("Do you want to use an image from the MNIST database?\n")
+            if _input in ["Yes", "yes", "y", "Y"]:
+                saliency_options["use_MNIST"] = True
+                print("use_MNIST is set to:", end="")
+                print(saliency_options.get("use_MNIST"))
+                print()
+            elif _input in ["No", "no", "n", "N"]:
+                saliency_options["use_MNIST"] = False
+                print("use_MNIST is set to:", end="")
+                print(saliency_options.get("use_MNIST"))
+                print()
+            else:
+                print("Not an available option...\n")
         elif _input == "!Guidance":
             _input = input("Set the value for guidance, must be True or False:\n")
             if _input in ["True", "true", "t", "T"]:
@@ -312,16 +328,38 @@ def saliency_menu():
             saliency_options["image"] = Image.open(path)
         elif _input == "!start":
             print("Saliency is running...")
-            convManager.saliency_map(saliency_options.get("image"),
-                                     saliency_options.get("Expected"),
-                                     guided=saliency_options.get("Guidance"),
-                                     use_gpu=saliency_options.get("use_gpu"),
-                                     return_output=saliency_options.get("return_output"),
-                                     alpha=saliency_options.get("Alpha")
-                                     )
+            if modelType == "Convolutional":
+                convManager.saliency_map(saliency_options.get("image"),
+                                         saliency_options.get("Expected"),
+                                         guided=saliency_options.get("Guidance"),
+                                         use_gpu=saliency_options.get("use_gpu"),
+                                         return_output=saliency_options.get("return_output"),
+                                         alpha=saliency_options.get("Alpha")
+                                         )
+            elif modelType == "Linear":
+                if saliency_options.get("use_MNIST"):
+                    for images, labels in test_loader:
+                        gradients = mlpManager.saliency_map(images[0],
+                                                            saliency_options.get("Expected"),
+                                                            guided=saliency_options.get("Guidance"),
+                                                            use_gpu=saliency_options.get("use_gpu"),
+                                                            return_output=saliency_options.get("return_output"),
+                                                            alpha=saliency_options.get("Alpha"),
+                                                            )
+                        break
+                else:
+                    image = Image.open(lrp_options.get("image_path")).convert('LA')
+                    gradients = mlpManager.saliency_map(saliency_options.get("image"),
+                                                        saliency_options.get("Expected"),
+                                                        guided=saliency_options.get("Guidance"),
+                                                        use_gpu=saliency_options.get("use_gpu"),
+                                                        return_output=saliency_options.get("return_output"),
+                                                        alpha=saliency_options.get("Alpha")
+                                                        )
             plt.show()
         else:
             print("Not an available command, type !help to see all available commands.")
+
 
 # activmax
 def activmax_menu():
@@ -411,6 +449,7 @@ def activmax_menu():
         else:
             print("Not an available command, type !help to see all available commands.")
 
+
 def deepdream_menu():
     """
     This submenu gives the user the possibility to adjust certain settings before starting the deepdream creation.
@@ -467,11 +506,10 @@ def deepdream_menu():
             print("Not an available command, type !help to see all available commands.")
 
 
-
 #
 # -----------------------------------------------------Menu-------------------------------------------------------------
 #
-while running: # todo make sure that return values are used. check user input and images
+while running:  # todo make sure that return values are used. check user input and images
     if model is None:
         print("You should select a model to use first, you can switch to another model later on!")
     _input = input("type a command: (type '!help' to view the available commands)\n")
@@ -494,11 +532,13 @@ while running: # todo make sure that return values are used. check user input an
             elif modelType == "Linear":
                 print("\nThe multilayer perceptron specific commands you can do are:")
                 print("!lrp: \t\t\tuse the layerwise relevance propagation explainability method.")
+                print("!saliency: \t\tuses the saliency explainability method.")
     elif _input == "!listModels":
         for tempModel in availableModels:
             print(tempModel)
     elif _input == "!addModel":
-        file_name = input("Give the name of the python file (don't put .py behind the file!).\nIn case this is in another folder, use '.'\n")
+        file_name = input(
+            "Give the name of the python file (don't put .py behind the file!).\nIn case this is in another folder, use '.'\n")
         class_name = input("Give the name of the class.\n")
         try:
             exec('import %s' % file_name)
@@ -566,10 +606,12 @@ while running: # todo make sure that return values are used. check user input an
             # yet again a copy of the model, otherwise you can get problems wit use_gpu functions
             mlpManager.set_model(model)
             lrp_menu()
+        elif _input == "!saliency":
+            # yet again a copy of the model, otherwise you can get problems wit use_gpu functions
+            mlpManager.set_model(model)
+            saliency_menu()
         else:
             print("This is not an available command!")
     else:
         print("This is not an available command!")
     print()
-
-

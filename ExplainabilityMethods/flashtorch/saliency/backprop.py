@@ -5,10 +5,14 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 
-
 from ExplainabilityMethods.flashtorch.utils import (denormalize,
                                                     format_for_plotting,
                                                     standardize_and_clip)
+
+import ModelFunctions as mf
+import math
+from PIL import Image
+
 
 class Backprop:
     """Provides an interface to perform backpropagation.
@@ -45,7 +49,8 @@ class Backprop:
                             target_class=None,
                             take_max=False,
                             guided=False,
-                            use_gpu=False):
+                            use_gpu=False,
+                            model_type="Convolutional"):
 
         """Calculates gradients of the target_class output w.r.t. an input_.
 
@@ -68,9 +73,13 @@ class Backprop:
 
         """
 
-        if 'inception' in self.model.__class__.__name__.lower():
-            if input_.size()[1:] != (3, 299, 299):
-                raise ValueError('Image must be 299x299 for Inception models.')
+        if model_type == "Convolutional":
+            if 'inception' in self.model.__class__.__name__.lower():
+                if input_.size()[1:] != (3, 299, 299):
+                    raise ValueError('Image must be 299x299 for Inception models.')
+        else:
+            if model_type != "MLP":
+                raise ValueError(f"given model_type {model_type} is not supported.")
 
         if guided:
             self.relu_outputs = []
@@ -116,6 +125,11 @@ class Backprop:
             target[0][top_class] = 1
 
         # Calculate gradients of the target class output w.r.t. input_
+        if model_type == "MLP":
+            input_.requires_grad_(True)
+            def hook(grad):
+                self.gradients = grad
+            input_.register_hook(hook)
 
         output.backward(gradient=target)
 
@@ -132,7 +146,7 @@ class Backprop:
 
     def visualize(self, input_, target_class, guided=False, use_gpu=False,
                   figsize=(16, 4), cmap='viridis', alpha=.5,
-                  return_output=False):
+                  return_output=False, model_type="Convolutional"):
         """Calculates gradients and visualizes the output.
 
         A method that combines the backprop operation and visualization.
@@ -166,33 +180,54 @@ class Backprop:
         gradients = self.calculate_gradients(input_,
                                              target_class,
                                              guided=guided,
-                                             use_gpu=use_gpu)
+                                             use_gpu=use_gpu,
+                                             model_type=model_type)
         max_gradients = self.calculate_gradients(input_,
                                                  target_class,
                                                  guided=guided,
                                                  take_max=True,
-                                                 use_gpu=use_gpu)
+                                                 use_gpu=use_gpu,
+                                                 model_type=model_type)
 
         # Setup subplots
-
-        subplots = [
-            # (title, [(image1, cmap, alpha), (image2, cmap, alpha)])
-            ('Input image',
-             [(format_for_plotting(denormalize(input_)), None, None)]),
-            ('Gradients across RGB channels',
-             [(format_for_plotting(standardize_and_clip(gradients)),
-              None,
-              None)]),
-            ('Max gradients',
-             [(format_for_plotting(standardize_and_clip(max_gradients)),
-              cmap,
-              None)]),
-            ('Overlay',
-             [(format_for_plotting(denormalize(input_)), None, None),
-              (format_for_plotting(standardize_and_clip(max_gradients)),
-               cmap,
-               alpha)])
-        ]
+        if model_type == "MLP":
+            subplots = [
+                # (title, [(image1, cmap, alpha), (image2, cmap, alpha)])
+                ('Input image',
+                 [(input_.view(int(math.sqrt(len(list(self.gradients[0])))),
+                               int(math.sqrt(len(list(self.gradients[0]))))).detach().numpy(), None, None)]),
+                ('gradients',
+                 [(self.gradients.view(int(math.sqrt(len(list(self.gradients[0])))),
+                                       int(math.sqrt(len(list(self.gradients[0]))))).detach().numpy(),
+                   None,
+                   None)]),
+                ('Overlay',
+                 [(input_.view(int(math.sqrt(len(list(self.gradients[0])))),
+                               int(math.sqrt(len(list(self.gradients[0]))))).detach().numpy(), None, None),
+                  (self.gradients.view(int(math.sqrt(len(list(self.gradients[0])))),
+                                       int(math.sqrt(len(list(self.gradients[0]))))).detach().numpy(),
+                   cmap,
+                   alpha)])
+            ]
+        else:
+            subplots = [
+                # (title, [(image1, cmap, alpha), (image2, cmap, alpha)])
+                ('Input image',
+                 [(format_for_plotting(denormalize(input_)), None, None)]),
+                ('Gradients across RGB channels',
+                 [(format_for_plotting(standardize_and_clip(gradients)),
+                   None,
+                   None)]),
+                ('Max gradients',
+                 [(format_for_plotting(standardize_and_clip(max_gradients)),
+                   cmap,
+                   None)]),
+                ('Overlay',
+                 [(format_for_plotting(denormalize(input_)), None, None),
+                  (format_for_plotting(standardize_and_clip(max_gradients)),
+                   cmap,
+                   alpha)])
+            ]
 
         fig = plt.figure(figsize=figsize)
 
@@ -212,14 +247,13 @@ class Backprop:
     #####################
 
     def _register_conv_hook(self):
-        def _record_gradients(module, grad_in, grad_out):
+        def _record_gradients_conv(module, grad_in, grad_out):
             if self.gradients.shape == grad_in[0].shape:
                 self.gradients = grad_in[0]
 
         for _, module in self.model.named_modules():
-            if isinstance(module, nn.modules.conv.Conv2d) and \
-                    module.in_channels == 3:
-                module.register_backward_hook(_record_gradients)
+            if (isinstance(module, nn.modules.conv.Conv2d) and module.in_channels == 3):
+                module.register_backward_hook(_record_gradients_conv)
                 break
 
     def _register_relu_hooks(self):
