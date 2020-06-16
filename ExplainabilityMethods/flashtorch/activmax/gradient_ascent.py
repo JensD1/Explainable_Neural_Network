@@ -80,7 +80,7 @@ class GradientAscent:
     def use_gpu(self, use_gpu):
         self._use_gpu = use_gpu
 
-    def optimize(self, layer, filter_idx, input_=None, num_iter=30):
+    def optimize(self, layer, filter_idx, input_=None, num_iter=50):
         """Generates an image that maximally activates the target filter.
 
         Args:

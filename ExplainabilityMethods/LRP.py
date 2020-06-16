@@ -287,7 +287,7 @@ class LRP:
                 # Step 1
                 z = torch.add(
                     torch.mul(self.input_activation_values[self.current_layer - 1], self.function(module.weight)).sum(
-                        dim=1), sys.float_info.epsilon)
+                        dim=1), sys.float_info.epsilon)  # another epsilon value  can be used as stabiliser.
                 # Step 2
                 s = torch.div(self.relevance[0], z)
                 for j in range(module.in_features):
@@ -316,6 +316,7 @@ class LRP:
             # Saving the temp relevance tho the class variable and setting the current_layer -1.
             self.relevance = layer_relevance
             self.current_layer -= 1
+            print(self.relevance.sum())
 
         elif isinstance(module, nn.Conv2d) or isinstance(module, nn.Conv1d) or isinstance(module, nn.Conv3d):
             module._forward_hooks.clear()  # may not be removed!!
@@ -339,7 +340,7 @@ class LRP:
                     return p
 
                 def incr(var):
-                    return var + 1e-9
+                    return var  # + 1e-9
 
                 z = incr(newlayer(module, rho).forward(self.input_activation_values[self.current_layer - 1]))  # step 1
                 s = (self.relevance / z).data  # step 2
@@ -368,6 +369,7 @@ class LRP:
                             self.input_activation_values[self.current_layer - 1] * c + lb * cp + hb * cm).data  # step 4
             # setting the current_layer -1.
             self.current_layer -= 1
+            print(self.relevance.sum())
 
 
         elif isinstance(module, nn.MaxPool2d) or isinstance(module, nn.AdaptiveMaxPool2d):
@@ -388,6 +390,7 @@ class LRP:
             self.relevance = unpool(self.relevance.view(output.size()), indices,
                                     output_size=self.input_activation_values[self.current_layer - 1].size())
             self.current_layer -= 1
+            print(self.relevance.sum())
 
     #
     # ----------------------------------------------Register Hooks------------------------------------------------------
