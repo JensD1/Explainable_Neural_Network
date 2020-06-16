@@ -282,18 +282,40 @@ class GradientAscent:
     def _ascent(self, x, num_iter):
         output = []
 
-        for i in range(num_iter):
-            self.model(x)
+        input_size = x.size()
+        x = nn.functional.interpolate(x, size=50)
+        self.gradients = nn.functional.interpolate(self.gradients, size=50)
+        while x.size() < input_size:
+            for i in range(num_iter):
+                self.model(x)
 
-            self.activation.backward()
+                self.activation.backward()
 
-            self.gradients /= (torch.sqrt(torch.mean(
-                torch.mul(self.gradients, self.gradients))) + 1e-5)
+                self.gradients /= (torch.sqrt(torch.mean(
+                    torch.mul(self.gradients, self.gradients))) + 1e-5)
 
-            x = x + self.gradients * self._lr
-            output.append(x)
+                x = x + self.gradients * self._lr
+                output.append(x)
+            print("next resize")
+            x = nn.functional.interpolate(x, scale_factor=1.3)
+            self.gradients = nn.functional.interpolate(self.gradients, scale_factor=1.3)
 
         return output
+
+        # output = []
+        #
+        # for i in range(num_iter):
+        #     self.model(x)
+        #
+        #     self.activation.backward()
+        #
+        #     self.gradients /= (torch.sqrt(torch.mean(
+        #         torch.mul(self.gradients, self.gradients))) + 1e-5)
+        #
+        #     x = x + self.gradients * self._lr
+        #     output.append(x)
+        #
+        # return output
 
     def _validate_filter_idx(self, num_filters, filter_idx):
         if not np.issubdtype(type(filter_idx), np.integer):
